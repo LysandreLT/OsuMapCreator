@@ -134,7 +134,7 @@ class App(tk.Tk):
     def debug(self):
         print("is dir : ", os.path.isdir(self.entry_location_data.get()))
         print(self.is_delete_origin_data.get())
-        print(str(datetime.timedelta(seconds=util.get_duration("C:/Users/hugob/dev/python/OSU_AI/MapCreator/app/ui/maps/1953850 RIOT - Overkill/drum-hitclap.ogg"))))
+        # print(str(datetime.timedelta(seconds=util.get_duration("C:/Users/hugob/dev/python/OSU_AI/MapCreator/app/ui/maps/1953850 RIOT - Overkill/drum-hitclap.ogg"))))
 
     def confirm(self, message: str):
         if self.is_delete_origin_data.get():
