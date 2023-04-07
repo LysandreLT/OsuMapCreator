@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/OsuMapCreator.iml" filepath="$PROJECT_DIR$/.idea/OsuMapCreator.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../ossapi/.idea/ossapi.iml" filepath="$PROJECT_DIR$/../ossapi/.idea/ossapi.iml" />
     </modules>
   </component>
 </project>

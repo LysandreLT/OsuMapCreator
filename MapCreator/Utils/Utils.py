@@ -1,8 +1,18 @@
+import json
 import os
 import shutil
 import zipfile
-
+import osuparser as osu
 import librosa as librosa
+from enum import Enum
+
+
+# class syntax
+class Type(Enum):
+    OSZ = "osz"
+    OSU = "osu"
+    ZIP = "zip"
+    JSON = "json"
 
 
 def readZip(file: str):
@@ -17,7 +27,7 @@ def isArchive(file: str):
 def isOSZFile(file: str):
     # return file.split(".")[-1] != "osz"
     name = file.split(".")
-    if name[-1] != "osz":
+    if name[-1] != Type.OSZ:
         print(f"File '{file}' is not an .osz file")
         return False
     else:
@@ -79,7 +89,7 @@ def write_archive(file_paths, name: str):
     :param name: name of the zip file
     """
     # writing files to a zipfile
-    with zipfile.ZipFile(f'{name}.osz', 'w') as zip:
+    with zipfile.ZipFile(f'{name}.{Type.OSZ.value}', 'w') as zip:
         # writing each file one by one
         for file in file_paths:
             zip.write(file)
@@ -94,6 +104,11 @@ def write_osz_archive(directory: str, name: str):
     # calling function to get all file paths in the directory
     file_paths = get_all_file_paths(directory)
     write_archive(file_paths, name)
+
+
+def write(content, path: str, name: str, type: Type):
+    with open(f'{os.path.join(path, name)}.{type.value}', 'w') as f:
+        f.write(json.dumps(content, indent=2))
 
 
 def selectList(list):
@@ -164,3 +179,10 @@ def clean_archive(path: str, dest: str):
         temp_path = dest + "/temp/"
         extractAll(path, temp_path)
         clean_archive_folder(temp_path, dest)
+
+
+def parse(path):
+    parser = osu.beatmapparser.BeatmapParser()
+    parser.parseFile(path)
+    parser.build_beatmap()
+    return parser.beatmap
