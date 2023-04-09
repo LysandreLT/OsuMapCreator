@@ -1,5 +1,3 @@
-import datetime
-import json
 import time
 from tkinter.messagebox import askyesno
 from tkinter import filedialog

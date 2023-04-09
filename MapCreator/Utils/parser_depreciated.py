@@ -3,9 +3,10 @@ import inspect
 import os
 import re
 from typing import List
+import osuparser
 
-from models import Section, Structure, General, Editor, Metadata, Difficulty, TimingPoint, Event, ColourObject, \
-    HitObject, HitSample
+from models_depreciated import Section, Structure, General, Editor, Metadata, Difficulty, TimingPoint, Event, ColourObject, \
+    HitObject, HitSample, Spinner, Slider
 
 
 class Parse:
@@ -53,9 +54,6 @@ class Parse:
     def parse_general(self):
         for line in self.general_section:
             members = line.split(':')
-            # for class
-            # if members[0] == "AudioFilename":
-            #     self.general.AudioFilename = self.value(members[1].strip())
             self.map_to_class_attribute(members, self.general)
 
     def parse_editor(self):
@@ -109,6 +107,21 @@ class Parse:
 
         hit_sample.filename = members[4]
 
+    def parse_obj_params(self,params:str,_type):
+        if params:
+            print(params)
+            if _type & 1:
+                slider = Slider()
+                print("slider",params)
+                return slider
+            elif _type & 3:
+                spinner = Spinner()
+                spinner.endTime = params
+                return spinner
+            elif _type & 7:
+                print("mania")
+            else:
+                print("unknown type:",_type)
 
     def parse_hit_objects(self):
 
@@ -117,13 +130,21 @@ class Parse:
             hit_object = HitObject()
             hit_object.x = self.value(members[0])
             hit_object.y = self.value(members[1])
-            hit_object.time = self.value(members[3])
+            hit_object.time = self.value(members[2])
+            hit_object.type = self.value(members[3])
             hit_object.hitSound = self.value(members[4])
+
+            # if > 1 means there is hitSample -> if type 1 or 3, param = members[5:-1]
+            # else no hitSample and if type 1 or 3, param = members[5:]
             if len(members[-1].split(":")) > 1:
                 hit_object.hitSample = self.parse_hit_sample(members[-1])
-            objparams = ",".join(members[5:-1])
-            # if objparams:
-            #     print(objparams)
+                # print(members[-1].split(":"))
+                self.parse_obj_params(members[5:-1],hit_object.type)
+            else:
+                hit_object.hitSample = HitSample().set(0,0,0,0)
+                self.parse_obj_params(members[5:], hit_object.type)
+
+            self.hit_objects.append(hit_object)
 
     def build_beatmap(self):
         self.structure = Structure()
@@ -191,5 +212,5 @@ if __name__ == "__main__":
     parser = Parse()
     parser.parseFile(PATH)
     parser.build_beatmap()
-    print(parser.metadata.Title)
+    # print(parser.hit_objects[0].type)
 

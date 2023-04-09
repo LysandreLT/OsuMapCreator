@@ -1,8 +1,9 @@
 from enum import Enum
 from typing import List, Optional
+import abc
 
 
-class Section(Enum):
+class SectionName(Enum):
     General = "[General]",
     Editor = "[Editor]"
     Metadata = "[Metadata]"
@@ -13,64 +14,49 @@ class Section(Enum):
     HitObjects = "[HitObjects]"
 
 
-class Effect(Enum):
-    KiaiTime: int(0)
-    OmitFisrtBarline: int(3)
-    Other: int
+class Section:
 
+    def value(self, value):
+        if value.strip().isnumeric():
+            return int(value)
+        else:
+            try:
+                return float(value)
+            except ValueError:
+                return value
 
-class Type(Enum):
-    Circle: 0
-    Slider: 1
-    NewCombo: 2
-    Spinner: 3
-    OsuManiaHold: 7
-    ComboColoursToSkip: int
-
-
-class Color(Enum):
-    Red: int
-    Green: int
-    Blue: int
-
-
-class HitSound(Enum):
-    Normal: 0
-    Whistle: 1
-    Finish: 2
-    Clap: 3
-
-
-class SampleSet(Enum):
-    NoCustomSampleset: int(0)
-    Normal: int(1)
-    Soft: int(2)
-    Drum: int(3)
+    def parse_line(self, line: str):
+        ...
 
 
 class HitSample:
-    normalSet: int #SampleSet
-    additionSet: int  #SampleSet
-    index: int
-    volume: int
-    filename: str
+    normalSet: int = 0  # SampleSet
+    additionSet: int = 0  # SampleSet
+    index: int = 0
+    volume: int = 0
+    filename: Optional[str]
+
+    def set(self, normalSet: int, additionSet: int, index: int, volume: int, filename: Optional[str] = ""):
+        self.normalSet = normalSet
+        self.additionSet = additionSet
+        self.index = index
+        self.volume = volume
+        self.filename = filename
+
+    def __str__(self):
+        if self.filename != "":
+            return str(f"{self.normalSet}:{self.additionSet}:{self.index}:{self.volume}:{self.filename}:")
+        else:
+            return str(f"{self.normalSet}:{self.additionSet}:{self.index}:{self.volume}:")
 
 
-class ObjectParams:
-    pass
-
-
-class EventParams:
-    pass
-
-
-class General:
+class General(Section):
     AudioFilename: str = None
     AudioLeadIn: int = 0
     AudioHash: str = None
     PreviewTime: int = -1
     Countdown: int = 1
-    SampleSet: str = "Normal"  #SampleSet.Normal.value
+    SampleSet: str = "Normal"  # SampleSet.Normal.value
     StackLeniency: float = 0.7
     Mode: int = 0
     LetterboxInBreaks: int = 0
@@ -85,39 +71,63 @@ class General:
     WidescreenStoryboard: int = 0
     SamplesMatchPlaybackRate: int = 0
 
+    def parse_line(self, line: str):
+        members = line.split(':')
+        self.__setattr__(members[0], self.value(members[1]))
 
-class Editor:
+
+class Editor(Section):
     Bookmarks: List[int]
     DistanceSpacing: float = None
     BeatDivisor: int = None
     GridSize: int = None
     TimelineZoom: float = None
 
+    def parse_line(self, line: str):
+        members = line.split(':')
+        if members[0] == "Bookmarks":
+            self.Bookmarks = [self.value(x) for x in members[1].split(",")]
+        else:
+            self.__setattr__(members[0], self.value(members[1]))
 
-class Metadata:
-    Title: str = None
-    TitleUnicode: str = None
-    Artist: str = None
-    ArtistUnicode: str = None
-    Creator: str = None
-    Version: str = None
-    Source: str = None
+
+class Metadata(Section):
+    Title: str
+    TitleUnicode: str
+    Artist: str
+    ArtistUnicode: str
+    Creator: str
+    Version: str
+    Source: str
     Tags: List[str]
-    BeatmapID: int = None
-    BeatmapSetID: int = None
+    BeatmapID: int
+    BeatmapSetID: int
 
-
-class Difficulty:
-    HPDrainRate: float = None
-    CircleSize: float = None
-    OverallDifficulty: float = None
-    ApproachRate: float = None
-    SliderMultiplier: float = None
-    SliderTickRate: float = None
+    def parse_line(self, line: str):
+        members = line.split(':')
+        if members[0] == "Tags":
+            self.Tags = [x for x in members[1].split(" ")]
+        else:
+            self.__setattr__(members[0], self.value(members[1]))
 
 
 
-class Event:
+class Difficulty(Section):
+    HPDrainRate: float
+    CircleSize: float
+    OverallDifficulty: float
+    ApproachRate: float
+    SliderMultiplier: float
+    SliderTickRate: float
+
+    def parse_line(self, line: str):
+        members = line.split(':')
+        self.__setattr__(members[0], self.value(members[1]))
+
+class EventParams:
+    pass
+
+class Event(Section):
     eventType: str
     startTime: int
     eventParams: List[EventParams]
@@ -149,97 +159,169 @@ class Storyboard(EventParams):
     pass
 
 
-class TimingPoint:
-    time: int = None
-    beatLength: float = None
-    meter: int = None
-    sampleSet: int = 1   # SampleSet = SampleSet.Normal.value
+class TimingPoint(Section):
+    time: int
+    beatLength: float
+    meter: int
+    sampleSet: int = 1  # SampleSet = SampleSet.Normal.value
     sampleIndex: int = 0
-    volume: int = None
-    uninherited: int = None
+    volume: int = 1
+    uninherited: int
     effects: int = 0  # Effect = None
-    bpm: int = None
+    bpm: int
+
+    def parse_line(self, line: str):
+        members = line.split(",")
+        self.time = self.value(members[0])
+        self.beatLength = self.value(members[1])
+        self.meter = self.value(members[2])
+        self.sampleSet = self.value(members[3])
+        self.sampleIndex = self.value(members[4])
+        self.volume = self.value(members[5])
+        self.uninherited = self.value(members[6])
+        self.effects = self.value(members[7])
+        self.calculate_bpm()
 
     def calculate_bpm(self):
         self.bpm = round(60000 / self.beatLength)
 
 
 # TODO check wiki for colours
-class ColourObject:
+class ColourObject(Section):
     Combo: int
-    color: Color
+    color: List[int]
 
     # SliderTrackOverride
     # SliderBorder
-
-class Cercle(ObjectParams):
-    pass
-
-
-class SliderCurve(Enum):
-    Besier: "B"
-    Catmull: "C"
-    Linear: "L"
-    PerfectCircle: "P"
+    def parse_line(self, line):
+        pass
 
 
-class Slider(ObjectParams):
-    curveType: str
-    curvePoints: str  # TODO
-    slides: int
-    length: float
-    edgeSounds: str  # TODO
-    edgeSets: str  # TODO
-
-
-class Spinner(ObjectParams):
-    endTime: int
-    hitSample: HitSample
-
-
-class HitObject:
+class HitObject(Section):
     x: int
     y: int
     time: int
-    type: int = 0 # Type
-    hitSound: HitSound
-    objectParams: Optional[ObjectParams]
-    hitSample: Optional[HitSample]
+    type: int = 0  # Type
+    hitSound: int = 0
+    hitSample: str  # Optional[HitSample]
+
+    def get_hit_sample(self, line) -> str:
+        if self.has_hit_sample(line):
+            return line
+        return "0:0:0:0:0:"
+
+    def has_hit_sample(self, line) -> bool:
+        if type(line) == int or type(line) == float:
+            return False
+        else:
+            return True
+    def get(self,_type):
+        return self.__dict__.get(str(_type))
+
+    def get_type(self, _type):
+        if _type & 1:
+            print("circle")
+        elif _type & 2:
+            print("slider")
+        elif _type & 8:
+            print("spinner")
+        # elif _type & 128:
+        #     print("mania")
+        else:
+            print("unknown type:", _type)
+
+    def is_slider(self, _type) -> bool:
+        if _type & 2:
+            return True
+        return False
+
+    def is_spinner(self, _type) -> bool:
+        if _type & 8:
+            return True
+        return False
+
+    def is_circle(self, _type) -> bool:
+        if _type & 1:
+            return True
+        return False
 
 
-class Structure:
-    file_format: str
-    general: General
-    editor: Editor
-    metadata: Metadata
-    difficulty: Difficulty
-    events: Event
-    timing_points: List[TimingPoint]
-    colours: List[ColourObject]
-    hit_objects: List[HitObject]
-
-    # def __int__(self, ile_format: str,
-    #             general: General,
-    #             editor: Editor,
-    #             metadata: Metadata,
-    #             difficulty: Difficulty,
-    #             events: Event,
-    #             timing_points: List[TimingPoint],
-    #             colours: List[ColourObject],
-    #             hit_objects: List[HitObject]):
-    #
-    #     self.ile_format = ile_format
-    #     self.general = general
-    #     self.editor = editor
-    #     self.metadata = metadata
-    #     self.difficulty = difficulty
-    #     self.events = events
-    #     self.timing_points = timing_points
-    #     self.colours = colours
-    #     self.hit_objects = hit_objects
+class Cercle(HitObject):
+    def parse_line(self, line):
+        members = line.split(",")
+        self.x = self.value(members[0])
+        self.y = self.value(members[1])
+        self.time = self.value(members[2])
+        self.type = self.value(members[3])
+        self.hitSound = self.value(members[4])
+        self.hitSample = self.get_hit_sample(self.value(members[-1]))
 
 
 
-    # def __init__(self, **entries):
-    #     self.__dict__.update(entries)
-    # General(**self.general)
+
+class Spinner(HitObject):
+    endTime: int
+
+    def parse_line(self, line):
+        members = line.split(",")
+        self.x = self.value(members[0])
+        self.y = self.value(members[1])
+        self.time = self.value(members[2])
+        self.type = self.value(members[3])
+        self.hitSound = self.value(members[4])
+        self.endTime = self.value(members[5])
+
+        self.hitSample = self.get_hit_sample(self.value(members[-1]))
+
+
+class CurvePoint:
+    x: int
+    y: int
+
+    def __str__(self):
+        return f"{self.x}:{self.y}"
+
+
+class Slider(HitObject):
+    curveType: str
+    curvePoints: List[CurvePoint]
+    slides: int
+    length: float
+    edgeSounds: str
+    edgeSets: str
+
+    def parse_line(self, line):
+        members = line.split(",")
+        self.x = self.value(members[0])
+        self.y = self.value(members[1])
+        self.time = self.value(members[2])
+        self.type = self.value(members[3])
+        self.hitSound = self.value(members[4])
+
+        # Parse slider points
+        points = (members[5] or '').split('|')
+        self.curveType = points[0]
+        self.curvePoints = []
+        if len(points):
+            for i in range(1, len(points)):
+                coordinates = points[i].split(':')
+                curve_point = CurvePoint()
+                curve_point.x = self.value(coordinates[0])
+                curve_point.y = self.value(coordinates[1])
+                # self.curvePoints.append(curve_point)
+                self.curvePoints.append(curve_point.__str__())
+
+        # Parse repeat slides bumber & length
+        self.slides = int(members[6])
+        self.length = int(round(float(members[7])))
+
+        # Parse edgeSounds
+        if len(members) > 9:
+            if members[8]:
+                self.edgeSounds = members[8]
+
+            # Parse edgeSets
+            if members[9]:
+                self.edgeSets = members[9]
+
+        self.hitSample = self.get_hit_sample(self.value(members[-1]))

@@ -1,10 +1,8 @@
-# import json
 import os
 import shutil
 import zipfile
-# import osuparser as osu
 import librosa as librosa
-from enum import Enum
+
 
 
 def readZip(file: str):
@@ -174,7 +172,7 @@ def clean_archive(path: str, dest: str):
 
 
 # def parse(path):
-#     parser = osu.beatmapparser.BeatmapParser()
+#     parser = beatmapparser.BeatmapParser()
 #     parser.parseFile(path)
 #     parser.build_beatmap()
 #     return parser.beatmap
