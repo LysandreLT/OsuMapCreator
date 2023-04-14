@@ -133,12 +133,8 @@ class App(tk.Tk):
     def debug(self):
         print("is dir : ", os.path.isdir(self.entry_location_data.get()))
         print(self.is_delete_origin_data.get())
-        # print(str(datetime.timedelta(seconds=util.get_duration("C:/Users/hugob/dev/python/OSU_AI/MapCreator/app/ui/maps/1953850 RIOT - Overkill/drum-hitclap.ogg"))))
-        beatmap = util.parse("C:/Users/hugob/dev/python/OsuMapCreator/MapCreator/app/ui/maps/1953850 RIOT - Overkill/RIOT - Overkill (Hareimu) [KILL THEM ALL].osu")
-        # json.dumps(beatmap)
-        # parsed = json.loads()
-        # print(json.dumps(parsed, indent=4))
-        util.write(beatmap,"C:/Users/hugob/dev/python/OsuMapCreator/MapCreator/app/ui/maps","test",util.Type.JSON)
+
+
 
     def confirm(self, message: str):
         if self.is_delete_origin_data.get():

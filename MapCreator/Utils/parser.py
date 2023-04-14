@@ -3,7 +3,7 @@ import os
 import re
 from typing import List
 
-from models import General, Editor, Metadata, Difficulty, Event, TimingPoint, ColourObject, HitObject, SectionName, \
+from MapCreator.Utils.models.models import General, Editor, Metadata, Difficulty, Event, TimingPoint, ColourObject, HitObject, SectionName, \
     Slider, Spinner, Cercle
 
 
@@ -63,7 +63,6 @@ class Parse:
             # self.file_format = line
             self.file_format = match.group(1)
             return
-
         if self.osu_section == SectionName.General.value:
             self.general.parse_line(line)
         elif self.osu_section == SectionName.Editor.value:
@@ -93,16 +92,17 @@ class Parse:
                     line = file.readline()
 
 
-PATH = "/MapCreator/app/ui/maps/1130581 Thank You Scientist - Mr. Invisible/Thank You Scientist - Mr. Invisible (DTM9 Nowa) [insane].osu"
+PATH = "C:/Users/hugob/dev/python/OsuMapCreator/MapCreator/app/ui/maps/552854 REOL - YoiYoi Kokon/REOL - YoiYoi Kokon (Ongaku) [Easy].osu"
 
 if __name__ == "__main__":
     parser = Parse()
     parser.parse_file(PATH)
+    print(parser.general.AudioFilename)
     # print([obj.__dict__ for obj in parser.hit_objects])
-    for obj in parser.hit_objects:
-        # print(type(obj),obj.__dict__)
-        # print(obj.__dict__)
-        print(obj.get("time"))
+    # for obj in parser.hit_objects:
+    #     # print(type(obj),obj.__dict__)
+    #     # print(obj.__dict__)
+    #     print(obj.get("time"))
 
 
 

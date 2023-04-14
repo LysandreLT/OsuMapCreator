@@ -4,7 +4,7 @@ import abc
 
 
 class SectionName(Enum):
-    General = "[General]",
+    General = "[General]"
     Editor = "[Editor]"
     Metadata = "[Metadata]"
     Difficulty = "[Difficulty]"
@@ -34,7 +34,7 @@ class HitSample:
     additionSet: int = 0  # SampleSet
     index: int = 0
     volume: int = 0
-    filename: Optional[str]
+    filename: Optional[str] = None
 
     def set(self, normalSet: int, additionSet: int, index: int, volume: int, filename: Optional[str] = ""):
         self.normalSet = normalSet
@@ -44,32 +44,53 @@ class HitSample:
         self.filename = filename
 
     def __str__(self):
-        if self.filename != "":
+        if self.filename is not None:
             return str(f"{self.normalSet}:{self.additionSet}:{self.index}:{self.volume}:{self.filename}:")
         else:
             return str(f"{self.normalSet}:{self.additionSet}:{self.index}:{self.volume}:")
 
 
 class General(Section):
-    AudioFilename: str = None
-    AudioLeadIn: int = 0
-    AudioHash: str = None
-    PreviewTime: int = -1
-    Countdown: int = 1
-    SampleSet: str = "Normal"  # SampleSet.Normal.value
-    StackLeniency: float = 0.7
-    Mode: int = 0
-    LetterboxInBreaks: int = 0
-    StoryFireInFront: int = 1
-    UseSkinSprites: int = 0
-    AlwaysShowPlayfield: int = 0
-    OverlayPosition: str = "NoChange"
-    SkinPreference: str = None
-    EpilepsyWarning: int = 0
-    CountdownOffset: int = 0
-    SpecialStyle: int = 0
-    WidescreenStoryboard: int = 0
-    SamplesMatchPlaybackRate: int = 0
+
+    def __init__(self,
+                 AudioFilename: Optional[str] = None,
+                 AudioLeadIn: Optional[int] = 0,
+                 AudioHash: Optional[str] = None,
+                 PreviewTime: Optional[int] = -1,
+                 Countdown: Optional[int] = 1,
+                 SampleSet: Optional[str] = "Normal",  # SampleSet.Normal.value
+                 StackLeniency: Optional[float] = 0.7,
+                 Mode: Optional[int] = 0,
+                 LetterboxInBreaks: Optional[int] = 0,
+                 StoryFireInFront: Optional[int] = 1,
+                 UseSkinSprites: Optional[int] = 0,
+                 AlwaysShowPlayfield: Optional[int] = 0,
+                 OverlayPosition: Optional[str] = "NoChange",
+                 SkinPreference: Optional[str] = None,
+                 EpilepsyWarning: Optional[int] = 0,
+                 CountdownOffset: Optional[int] = 0,
+                 SpecialStyle: Optional[int] = 0,
+                 WidescreenStoryboard: Optional[int] = 0,
+                 SamplesMatchPlaybackRate: Optional[int] = 0):
+        self.AudioFilename = AudioFilename
+        self.OverlayPosition = OverlayPosition
+        self.EpilepsyWarning = EpilepsyWarning
+        self.SpecialStyle = SpecialStyle
+        self.SamplesMatchPlaybackRate = SamplesMatchPlaybackRate
+        self.WidescreenStoryboard = WidescreenStoryboard
+        self.CountdownOffset = CountdownOffset
+        self.SkinPreference = SkinPreference
+        self.UseSkinSprites = UseSkinSprites
+        self.AlwaysShowPlayfield = AlwaysShowPlayfield
+        self.LetterboxInBreaks = LetterboxInBreaks
+        self.StoryFireInFront = StoryFireInFront
+        self.Mode = Mode
+        self.StackLeniency = StackLeniency
+        self.SampleSet = SampleSet
+        self.Countdown = Countdown
+        self.PreviewTime = PreviewTime
+        self.AudioLeadIn = AudioLeadIn
+        self.AudioHash = AudioHash
 
     def parse_line(self, line: str):
         members = line.split(':')
@@ -77,11 +98,17 @@ class General(Section):
 
 
 class Editor(Section):
-    Bookmarks: List[int]
-    DistanceSpacing: float = None
-    BeatDivisor: int = None
-    GridSize: int = None
-    TimelineZoom: float = None
+    def __init__(self,
+                 Bookmarks: Optional[List[int]] = None,
+                 DistanceSpacing: Optional[float] = None,
+                 BeatDivisor: Optional[int] = None,
+                 GridSize: Optional[int] = None,
+                 TimelineZoom: Optional[float] = None):
+        self.GridSize = GridSize
+        self.BeatDivisor = BeatDivisor
+        self.DistanceSpacing = DistanceSpacing
+        self.Bookmarks = Bookmarks
+        self.TimelineZoom = TimelineZoom
 
     def parse_line(self, line: str):
         members = line.split(':')
@@ -92,16 +119,28 @@ class Editor(Section):
 
 
 class Metadata(Section):
-    Title: str
-    TitleUnicode: str
-    Artist: str
-    ArtistUnicode: str
-    Creator: str
-    Version: str
-    Source: str
-    Tags: List[str]
-    BeatmapID: int
-    BeatmapSetID: int
+    def __init__(self,
+                 Title: Optional[str] = None,
+                 TitleUnicode: Optional[str] = None,
+                 Artist: Optional[str] = None,
+                 ArtistUnicode: Optional[str] = None,
+                 Creator: Optional[str] = None,
+                 Version: Optional[str] = None,
+                 Source: Optional[str] = None,
+                 Tags: Optional[List[str]] = None,
+                 BeatmapID: Optional[int] = None,
+                 BeatmapSetID: Optional[int] = None):
+
+        self.Tags = Tags
+        self.BeatmapSetID = BeatmapSetID
+        self.BeatmapID = BeatmapID
+        self.Source = Source
+        self.Version = Version
+        self.Creator = Creator
+        self.ArtistUnicode = ArtistUnicode
+        self.Artist = Artist
+        self.TitleUnicode = TitleUnicode
+        self.Title = Title
 
     def parse_line(self, line: str):
         members = line.split(':')
@@ -109,7 +148,6 @@ class Metadata(Section):
             self.Tags = [x for x in members[1].split(" ")]
         else:
             self.__setattr__(members[0], self.value(members[1]))
-
 
 
 class Difficulty(Section):
@@ -124,8 +162,10 @@ class Difficulty(Section):
         members = line.split(':')
         self.__setattr__(members[0], self.value(members[1]))
 
+
 class EventParams:
     pass
+
 
 class Event(Section):
     eventType: str
@@ -198,12 +238,32 @@ class ColourObject(Section):
 
 
 class HitObject(Section):
-    x: int
-    y: int
-    time: int
-    type: int = 0  # Type
-    hitSound: int = 0
-    hitSample: str  # Optional[HitSample]
+    # x: int
+    # y: int
+    # time: int
+    # type: int  # Type
+    # hitSound: int = 0
+    # hitSample: str  # Optional[HitSample]
+
+    def __init__(self,
+                 x: Optional[int] = 0,
+                 y: Optional[int] = 0,
+                 time: Optional[int] = 0,
+                 type: Optional[int] = 0,  # Type
+                 hitSound: Optional[int] = 0,
+                 hitSample: Optional[str] = None):
+        self.x = x
+        self.y = y
+        self.time = time
+        self.type = type
+        self.hitSound = hitSound
+        if hitSample is None:
+            self.hitSample = HitSample().__str__()
+        else:
+            self.hitSample = hitSample
+
+    def __str__(self):
+        return f"{self.x},{self.y},{self.time},{self.type},{self.hitSound},{self.hitSample}"
 
     def get_hit_sample(self, line) -> str:
         if self.has_hit_sample(line):
@@ -215,7 +275,8 @@ class HitObject(Section):
             return False
         else:
             return True
-    def get(self,_type):
+
+    def get(self, _type):
         return self.__dict__.get(str(_type))
 
     def get_type(self, _type):
@@ -247,6 +308,16 @@ class HitObject(Section):
 
 
 class Cercle(HitObject):
+
+    def __init__(self,
+                 x: Optional[int] = 0,
+                 y: Optional[int] = 0,
+                 time: Optional[int] = 0,
+                 type: Optional[int] = 0,  # Type
+                 hitSound: Optional[int] = 0,
+                 hitSample: Optional[str] = None):
+        super().__init__(x, y, time, type, hitSound, hitSample)
+
     def parse_line(self, line):
         members = line.split(",")
         self.x = self.value(members[0])
@@ -255,8 +326,6 @@ class Cercle(HitObject):
         self.type = self.value(members[3])
         self.hitSound = self.value(members[4])
         self.hitSample = self.get_hit_sample(self.value(members[-1]))
-
-
 
 
 class Spinner(HitObject):
