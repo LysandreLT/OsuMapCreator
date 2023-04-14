@@ -1,12 +1,17 @@
 # create a beatmap set to give to the UI segment
+import os
+import random
+import zipfile
+from shutil import make_archive
 from typing import List, Optional
 
-from MapCreator.Utils.models.models import General, Editor, Metadata, Difficulty, HitObject, SectionName
+from MapCreator.Utils import utils
+from MapCreator.Utils.models.models import General, Editor, Metadata, Difficulty, HitObject, SectionName, Cercle
 
 
 class BeatmapSet:
-    def __init__(self, file_name):
-        self.file_name = file_name
+    def __init__(self):
+        self.file_name = ""
         self.file_format = ""
         self.general = None
         self.editor = None
@@ -98,29 +103,30 @@ class BeatmapSet:
         self.write_append(self.file_name, "\n"+SectionName.Metadata.value + "\n")
         self.write_append(self.file_name, resultList)
 
-    def build_hit_points(self, hit_points: List[HitObject]):
-        resultList = []
-        for hit_obj in hit_points:
-            r = hit_obj.__str__() + "\n"
-            resultList.append(r)
-        self.write_append(self.file_name,"\n"+SectionName.HitObjects.value + "\n")
-        self.write_append(self.file_name, resultList)
+    def build_hit_points(self):
+        pass
 
-    def build_beatmap_test(self):
+    def build_beatmap_test(self,onsets,name):
+        # for test purpose !!!
+        self.file_name = f"C:/Users/hugob/dev/python/OsuMapCreator/MapCreator/datasets/maps/test/test-{name}.osu"
         self.file_format = "osu file format v14\n\n"
         self.write_append(self.file_name,self.file_format)
         self.build_general(AudioFilename="audio.mp3")
         self.build_editor()
-        self.build_metadata(Title="test")
+        self.build_metadata(Title="test", TitleUnicode="test", Artist="test")
+        # hit_object
+        resultList = []
+        for onset in onsets:
+            hit_point = Cercle(x=random.randrange(50, 500, 1), y=random.randrange(50, 350, 1), time=round(onset),
+                               type=5,
+                               hitSound=random.randrange(0, 3, 1)).__str__() + "\n"
+            resultList.append(hit_point)
 
-    def build_beatmap_set(self):
-        # cretae folder in the dest path
-        # put the audio
-        # put the beatmap
-        # zip all
-
-        pass
-
+        self.write_append(self.file_name, "\n" + SectionName.HitObjects.value + "\n")
+        self.write_append(self.file_name, resultList)
+    def send_to_zip_test(self,name):
+        utils.write_osz_archive(directory="C:/Users/hugob/dev/python/OsuMapCreator/MapCreator/datasets/maps/test",
+                          name=f"C:/Users/hugob/dev/python/OsuMapCreator/MapCreator/datasets/maps/test/test-{name}")
 
 
 
@@ -128,8 +134,3 @@ class BeatmapSet:
         with open(file_name, 'a') as f:
             f.writelines(lines)
 
-
-if __name__ == "__main__":
-    file_name = "test.osu"
-    beatmapset = BeatmapSet(file_name)
-    beatmapset.build_beatmap_test()

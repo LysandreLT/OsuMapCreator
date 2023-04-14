@@ -92,7 +92,7 @@ class Parse:
                     line = file.readline()
 
 
-PATH = "C:/Users/hugob/dev/python/OsuMapCreator/MapCreator/app/ui/maps/552854 REOL - YoiYoi Kokon/REOL - YoiYoi Kokon (Ongaku) [Easy].osu"
+PATH = "/MapCreator/datasets/maps/552854 REOL - YoiYoi Kokon/REOL - YoiYoi Kokon (Ongaku) [Easy].osu"
 
 if __name__ == "__main__":
     parser = Parse()

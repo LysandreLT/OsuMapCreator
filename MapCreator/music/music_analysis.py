@@ -4,6 +4,33 @@ import numpy as np
 from numpy import ndarray
 
 
+def compute_beat_track(path) -> ndarray:
+    y, sr = librosa.load(path)
+    onset_env = librosa.onset.onset_strength(y=y, sr=sr)
+    tempo, beats = librosa.beat.beat_track(onset_envelope=onset_env,
+                                               units='time')
+    return beats * 1000
+def compute_plp(path) -> ndarray:
+    y, sr = librosa.load(path)
+    onset_env = librosa.onset.onset_strength(y=y, sr=sr)
+    pulse = librosa.beat.plp(onset_envelope=onset_env, sr=sr)
+    times = librosa.times_like(pulse, sr=sr)
+    beats_plp = np.flatnonzero(librosa.util.localmax(pulse))
+    return times[beats_plp] * 1000
+
+def compute_plp_prior(path) -> ndarray:
+    y, sr = librosa.load(path)
+
+    import scipy.stats
+    onset_env = librosa.onset.onset_strength(y=y, sr=sr)
+    prior = scipy.stats.lognorm(loc=np.log(120), scale=120, s=1)
+    pulse_lognorm = librosa.beat.plp(onset_envelope=onset_env, sr=sr,
+                                     prior=prior)
+    times = librosa.times_like(pulse_lognorm, sr=sr)
+    beats_plp = np.flatnonzero(librosa.util.localmax(pulse_lognorm))
+    return times[beats_plp] * 1000
+
+
 def compute_onset_default(path) -> ndarray:
     y, sr = librosa.load(path)
 
@@ -29,6 +56,8 @@ def compute_onset_superflux(path) -> ndarray:
     fmin = 27.5
     fmax = 16000.
     max_size = 3
+    # we don't need the first 5 seconds
+    y = y[sr*4:]
 
     # create mel spectro
     S = librosa.feature.melspectrogram(y=y, sr=sr, n_fft=n_fft,

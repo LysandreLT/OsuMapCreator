@@ -70,15 +70,12 @@ def get_all_file_paths(directory):
 
 
 def write_archive(file_paths, name: str):
-    """
-    :param file_paths: list of files to zip
-    :param name: name of the zip file
-    """
     # writing files to a zipfile
     with zipfile.ZipFile(f'{name}.osz', 'w') as zip:
         # writing each file one by one
         for file in file_paths:
-            zip.write(file)
+
+            zip.write(file,arcname=os.path.basename(file))
     print('All files zipped successfully!')
 
 

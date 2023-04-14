@@ -258,3 +258,5 @@ pip-selfcheck.json
 # End of https://www.toptal.com/developers/gitignore/api/pycharm,venv
 
 app/ui/maps/
+
+MapCreator/datasets/maps
