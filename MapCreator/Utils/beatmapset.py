@@ -1,8 +1,5 @@
 # create a beatmap set to give to the UI segment
-import os
 import random
-import zipfile
-from shutil import make_archive
 from typing import List, Optional
 
 from MapCreator.Utils import utils
@@ -62,8 +59,8 @@ class BeatmapSet:
                                WidescreenStoryboard=WidescreenStoryboard,
                                SamplesMatchPlaybackRate=SamplesMatchPlaybackRate)
 
-        resultList = [key + ":" + str(value)+"\n" for key, value in self.general.__dict__.items() if value != None]
-        self.write_append(self.file_name,SectionName.General.value+"\n")
+        resultList = [key + ":" + str(value) + "\n" for key, value in self.general.__dict__.items() if value != None]
+        self.write_append(self.file_name, SectionName.General.value + "\n")
         self.write_append(self.file_name, resultList)
 
     def build_editor(self,
@@ -100,17 +97,17 @@ class BeatmapSet:
                                  BeatmapID=BeatmapID,
                                  BeatmapSetID=BeatmapSetID)
         resultList = [key + ":" + str(value) + "\n" for key, value in self.metadata.__dict__.items() if value != None]
-        self.write_append(self.file_name, "\n"+SectionName.Metadata.value + "\n")
+        self.write_append(self.file_name, "\n" + SectionName.Metadata.value + "\n")
         self.write_append(self.file_name, resultList)
 
     def build_hit_points(self):
         pass
 
-    def build_beatmap_test(self,onsets,name):
+    def build_beatmap_test(self, onsets,dir_path, name):
         # for test purpose !!!
-        self.file_name = f"C:/Users/hugob/dev/python/OsuMapCreator/MapCreator/datasets/maps/test/test-{name}.osu"
+        self.file_name = f"{dir_path}/test-{name}.osu"
         self.file_format = "osu file format v14\n\n"
-        self.write_append(self.file_name,self.file_format)
+        self.write_append(self.file_name, self.file_format)
         self.build_general(AudioFilename="audio.mp3")
         self.build_editor()
         self.build_metadata(Title="test", TitleUnicode="test", Artist="test")
@@ -124,13 +121,11 @@ class BeatmapSet:
 
         self.write_append(self.file_name, "\n" + SectionName.HitObjects.value + "\n")
         self.write_append(self.file_name, resultList)
-    def send_to_zip_test(self,name):
-        utils.write_osz_archive(directory="C:/Users/hugob/dev/python/OsuMapCreator/MapCreator/datasets/maps/test",
-                          name=f"C:/Users/hugob/dev/python/OsuMapCreator/MapCreator/datasets/maps/test/test-{name}")
 
-
+    def send_to_zip_test(self, name, path):
+        utils.write_osz_archive(directory=path,
+                                name=f"{path}/test-{name}")
 
     def write_append(self, file_name, lines):
         with open(file_name, 'a') as f:
             f.writelines(lines)
-

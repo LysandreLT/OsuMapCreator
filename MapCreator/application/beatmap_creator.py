@@ -22,55 +22,37 @@ class tkinterApp(TkinterDnD.Tk):
         # init menu
         self.create_menu_bar()
 
-        # creating a container
-        container = tk.Frame(self)
-        container.pack(side="top", fill="both", expand=True)
+        self._frame = None
+        self.switch_frame(ProjectPresentation)
 
-        container.grid_rowconfigure(0, weight=1)
-        container.grid_columnconfigure(0, weight=1)
+        # frame.grid(row=0, column=0, sticky="nsew")
 
-        # initializing frames to an empty array
-        self.frames = {}
-
-        # iterating through a tuple consisting
-        # of the different page layouts
-        for F in (ModelTest, ProjectPresentation, BeatmapConfig, NewProject, Project):
-            frame = F(container, self)
-
-            # initializing frame of that object from
-            # startpage, page1, page2 respectively with
-            # for loop
-            self.frames[F] = frame
-
-            frame.grid(row=0, column=0, sticky="nsew")
-
-        # default frame
-        self.show_frame(ProjectPresentation)
-
-    # to display the current frame passed as
-    # parameter
-    def show_frame(self, cont):
-        frame = self.frames[cont]
-        frame.tkraise()
+    def switch_frame(self, frame_class):
+        """Destroys current frame and replaces it with a new one."""
+        new_frame = frame_class(self)
+        if self._frame is not None:
+            self._frame.destroy()
+        self._frame = new_frame
+        self._frame.pack(fill=tk.BOTH)
 
     def create_menu_bar(self):
         menu_bar = tk.Menu(self)
 
         # file
         menu_file = tk.Menu(menu_bar, tearoff=0)
-        menu_file.add_command(label="New project", command=lambda: self.show_frame(NewProject))
+        menu_file.add_command(label="New project", command=lambda: self.switch_frame(NewProject))
         menu_file.add_command(label="Open project", command=self.browse_folder)
         # menu_file.add_separator()
-        # menu_file.add_command(label="Beatmap configuration", command=lambda: self.show_frame(BeatmapConfigtk))
+        # menu_file.add_command(label="Beatmap configuration", command=lambda: self.switch_frame(BeatmapConfigtk))
         menu_file.add_separator()
-        menu_file.add_command(label="Presentation", command=lambda: self.show_frame(ProjectPresentation))
-        menu_file.add_command(label="Test", command=lambda: self.show_frame(ModelTest))
+        menu_file.add_command(label="Presentation", command=lambda: self.switch_frame(ProjectPresentation))
+        menu_file.add_command(label="Test", command=lambda: self.switch_frame(ModelTest))
         menu_file.add_separator()
         menu_file.add_command(label="Exit", command=self.quit)
         menu_bar.add_cascade(label="File", menu=menu_file)
         # edit
         # menu_edit = tk.Menu(menu_bar, tearoff=0)
-        # menu_edit.add_command(label="Beatmap configuration", command=lambda: self.show_frame(BeatmapConfig))
+        # menu_edit.add_command(label="Beatmap configuration", command=lambda: self.switch_frame(BeatmapConfig))
         # menu_edit.add_separator()
         # menu_edit.add_command(label="Volume")
         # menu_edit.add_command(label="slider speed")
@@ -78,18 +60,25 @@ class tkinterApp(TkinterDnD.Tk):
 
         self.config(menu=menu_bar)
 
+    def import_map(self):
+        # TODO possibility to import an existing osu map / extract and parse
+        pass
+
+
+
+
+
     def browse_folder(self):
         filename = filedialog.askdirectory(initialdir="",
                                            title="Select a Folder")
         self.current_project_dir = filename
-        (self.winfo_children())
-        self.show_frame(Project)
-
+        if filename != "":
+            self.switch_frame(Project)
 
 class NewProject(tk.Frame):
 
-    def __init__(self, parent, controller):
-        tk.Frame.__init__(self, parent)
+    def __init__(self, master):
+        tk.Frame.__init__(self, master)
 
         self.artist = ""
         self.title = ""
@@ -141,10 +130,10 @@ class NewProject(tk.Frame):
         frame = tk.Frame(self)
         frame.pack(fill=tk.X)
 
-        btn_create_project = tk.Button(frame, text="Create", command=lambda: self.create(controller))
+        btn_create_project = tk.Button(frame, text="Create", command=lambda: self.create(master))
         btn_create_project.pack(side=tk.RIGHT, padx=10, pady=5, ipadx=5, ipady=5)
 
-        btn_cancel = tk.Button(frame, text="Cancel", command=lambda: self.cancel(controller))
+        btn_cancel = tk.Button(frame, text="Cancel", command=lambda: self.cancel(master))
         btn_cancel.pack(side=tk.RIGHT, padx=10, pady=5, ipadx=5, ipady=5)
 
     def drop_inside_image(self, event):
@@ -192,11 +181,11 @@ class NewProject(tk.Frame):
                                               title="Select a File")
         self.audio_path.set(filename.strip())
 
-    def cancel(self, controller):
+    def cancel(self, master):
         self.location.set("")
-        controller.show_frame(ProjectPresentation)
+        master.switch_frame(ProjectPresentation)
 
-    def create(self, controller):
+    def create(self, master):
         if self.location.get() and os.path.exists(self.location.get()):
             if self.audio_path.get() and os.path.exists(self.audio_path.get()):
                 if self.isChecked.get():
@@ -204,19 +193,24 @@ class NewProject(tk.Frame):
                             self.location.get()) != "songs":
                         os.mkdir(os.path.join(self.location.get(), "songs"))
                     if os.path.basename(self.location.get()) != "songs":
-                        self.create_project(os.path.join(self.location.get(), "songs"), controller)
+                        self.create_project(os.path.join(self.location.get(), "songs"), master)
                     else:
-                        self.create_project(self.location.get(), controller)
+                        self.create_project(self.location.get(), master)
                 else:
-                    self.create_project(self.location.get(), controller)
+                    self.create_project(self.location.get(), master)
             else:
                 messagebox.showerror('Missing indormations', 'Error: Please select an audio file')
         else:
             messagebox.showerror('Missing indormations', 'Error: Please enter a valid location path for your project')
 
-    def create_project(self, project_path, controller):
+    def create_project(self, project_path, master):
+        # TODO don't like to set the artist like this here. may be if no meta detected, go to project and wait for user
+        #  to input artist and title and save to create the project repo
+        # TODO find a way to keep the audio path and move it late to the project repo
+        # reset artist and title
         artist = ""
         title = ""
+        # Search audio metadata
         try:
             file = mutagen.File(self.audio_path.get())
             try:
@@ -232,12 +226,14 @@ class NewProject(tk.Frame):
             if answer.result[1] is not None:
                 title = answer.result[1]
 
-        project_dir = os.path.join(project_path, f"{artist} {title}")
+        # create project dir
+        project_dir = os.path.join(project_path, f"{artist} - {title}")
         if not os.path.exists(project_dir):
             os.mkdir(project_dir)
-        controller.current_project_dir = project_dir
+        # opening the project interface
+        master.current_project_dir = project_dir
         shutil.move(src=self.audio_path.get(), dst=project_dir)
-        controller.show_frame(Project)
+        master.switch_frame(Project)
 
 
 class MyDialog(tk.simpledialog.Dialog):
@@ -251,15 +247,12 @@ class MyDialog(tk.simpledialog.Dialog):
 
         self.e1.grid(row=0, column=1)
         self.e2.grid(row=1, column=1)
-        self.e1.insert(0,"")
+        self.e1.insert(0, "")
         self.e2.insert(0, "")
         return self.e1  # initial focus
 
-        # override buttonbox() to create your action buttons
-
     def buttonbox(self):
         box = tk.Frame(self)
-        # note that self.ok() and self.cancel() are defined inside `Dialog` class
         tk.Button(box, text="Validate", width=10, command=self.ok, default=tk.ACTIVE) \
             .pack(side=tk.LEFT, padx=5, pady=5)
         tk.Button(box, text="Cancel", width=10, command=self.cancel) \
@@ -280,33 +273,65 @@ class MyDialog(tk.simpledialog.Dialog):
 
 
 class Project(tk.Frame):
-    def __init__(self, parent, controller):
-        tk.Frame.__init__(self, parent)
+    def __init__(self, master):
+        tk.Frame.__init__(self, master)
 
-        self.listbox = tk.Listbox(self, selectmode=tk.SINGLE, background="#ffe0d6")
+        # TODO every widgets depends on master and not on self --> can't call the onDestroy event when switching frame -> strange visual effect
+
+        self.listbox = tk.Listbox(master, selectmode=tk.SINGLE, background="#ffe0d6")
         self.listbox.place(relheight=1, relwidth=0.25)
         self.listbox.drop_target_register(DND_FILES)
         self.listbox.dnd_bind("<<Drop>>", self.drop_inside_list_box)
-        self.listbox.bind("<Double-1>")  # TODO
+        self.listbox.bind("<<ListboxSelect>>", lambda event: self.refresh_list_box(event, master))
 
-        self.config = BeatmapConfig(self, None)
-        self.config.place(relx=0.25, relwidth=0.75, relheight=0.95)
-
-        tk.Button(self,text="test",command=lambda :self.refresh_curr_dir(controller)).pack()
-
-        listbox_items = set(self.listbox.get(0,"end"))
-        if os.path.exists(controller.current_project_dir):
-            for file in os.listdir(controller.current_project_dir):
-                self.listbox.insert("end",file)
+        self.config = BeatmapConfig(master)
+        self.config.place(relx=0.25, relwidth=0.75)
+        self.refresh_list_box(None, master)
+        # frame = tk.Frame(master,background="#ff0000")
+        # frame.place(relx=0.25,y=350, relwidth=0.75, relheight=1.00)
+        # TODO add logs and configs file to remember if already have a work dir and a proj dir
+        # TODO detect if .osu (and music) in current project --> if have, parse --> else propose if they want to create a new project/or wait for them to save and create a repo
+        # TODO set / initialize config panels with the parsed values
+        # TODO add and finish all configs panels
+        # TODO add save btn to save modif --> rewrite all file?(utils/beatmapset)
+        # TODO add beatmap creation btn
 
     def drop_inside_list_box(self, event):
         self.listbox.insert("end", event.data)
 
-    def refresh_curr_dir(self,controller):
-        if os.path.exists(controller.current_project_dir):
-            for file in os.listdir(controller.current_project_dir):
-                if file not in set(self.listbox.get(0,"end")):
+    def refresh_list_box(self, event, master):
+        self.listbox.delete(0, "end")
+        if os.path.exists(master.current_project_dir):
+            for file in os.listdir(master.current_project_dir):
+                if file not in set(self.listbox.get(0, "end")):
                     self.listbox.insert("end", file)
+
+    def save(self):
+        pass
+
+    def create(self):
+        # TODO saving before creating (.osu)
+        self.save()
+        # TODO create --> method that process the audio in order to create the hit objects
+        # TODO check if there is audio + .osu and .osu configured correctly
+        #  --> zip everything
+        pass
+
+    def create_new_difficulty(self):
+        # TODO create a custom difficulty for the map
+        pass
+
+    def open_difficulty(self):
+        # TODO a song can have many beatmaps of differents difficulty
+        pass
+
+    def export_map(self):
+        # TODO export a choosen project
+        pass
+
+    def clear_all_notes(self):
+        # TODO reset all hitpoints / hitobjects
+        pass
 
 
 if __name__ == "__main__":

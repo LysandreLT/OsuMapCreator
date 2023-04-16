@@ -1,5 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
+
+
 class TabGeneral(tk.Frame):
 
     def __init__(self, master=None):
@@ -106,7 +108,7 @@ class TabDifficulty(tk.Frame):
 
 class BeatmapConfig(tk.Frame):
 
-    def __init__(self, parent, controller):
+    def __init__(self, parent):
         tk.Frame.__init__(self, parent)
 
         notebook = ttk.Notebook(self)
