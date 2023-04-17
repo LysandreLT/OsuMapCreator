@@ -7,6 +7,7 @@ from tkinter import filedialog, messagebox, simpledialog
 import mutagen
 from tkinterdnd2 import DND_FILES, TkinterDnD
 
+from MapCreator.Utils.parser import Parse
 from MapCreator.application.configuration import BeatmapConfig
 from MapCreator.application.model import ModelTest, ProjectPresentation
 
@@ -14,6 +15,8 @@ from MapCreator.application.model import ModelTest, ProjectPresentation
 class tkinterApp(TkinterDnD.Tk):
     def __init__(self, *args, **kwargs):
         super().__init__()
+
+        self.resizable(False, False)
         self.title('App')
         self.geometry('1080x720')
 
@@ -64,16 +67,13 @@ class tkinterApp(TkinterDnD.Tk):
         # TODO possibility to import an existing osu map / extract and parse
         pass
 
-
-
-
-
     def browse_folder(self):
         filename = filedialog.askdirectory(initialdir="",
                                            title="Select a Folder")
         self.current_project_dir = filename
         if filename != "":
             self.switch_frame(Project)
+
 
 class NewProject(tk.Frame):
 
@@ -276,17 +276,32 @@ class Project(tk.Frame):
     def __init__(self, master):
         tk.Frame.__init__(self, master)
 
-        # TODO every widgets depends on master and not on self --> can't call the onDestroy event when switching frame -> strange visual effect
+        # frame
+        _frame = tk.Frame(self, width=master.winfo_width(), height=master.winfo_height())
+        _frame.pack()
 
-        self.listbox = tk.Listbox(master, selectmode=tk.SINGLE, background="#ffe0d6")
+        self.listbox = tk.Listbox(_frame, selectmode=tk.SINGLE, background="#ffe0d6")
         self.listbox.place(relheight=1, relwidth=0.25)
         self.listbox.drop_target_register(DND_FILES)
         self.listbox.dnd_bind("<<Drop>>", self.drop_inside_list_box)
         self.listbox.bind("<<ListboxSelect>>", lambda event: self.refresh_list_box(event, master))
-
-        self.config = BeatmapConfig(master)
-        self.config.place(relx=0.25, relwidth=0.75)
         self.refresh_list_box(None, master)
+
+        frame_config = tk.Frame(_frame)
+        frame_config.place(relx=0.25)
+
+        self.config = BeatmapConfig(frame_config)
+        self.config.pack(side=tk.LEFT)
+
+        # TODO here we take the first beatmap in the project folder --> to change
+        for file in set(self.listbox.get(0, "end")):
+            self.initialize_config(master, file)
+            break
+
+        tk.Button(frame_config, text="Save", command=self.save).pack()
+        tk.Button(frame_config, text="Generate").pack()
+        tk.Button(frame_config, text="Export").pack()
+
         # frame = tk.Frame(master,background="#ff0000")
         # frame.place(relx=0.25,y=350, relwidth=0.75, relheight=1.00)
         # TODO add logs and configs file to remember if already have a work dir and a proj dir
@@ -296,10 +311,22 @@ class Project(tk.Frame):
         # TODO add save btn to save modif --> rewrite all file?(utils/beatmapset)
         # TODO add beatmap creation btn
 
+    def initialize_config(self, master, file: str):
+        if file.endswith(".osu"):
+            # create a new parser each time we parse a map? should be a singleton or something similar
+            parser = Parse()
+            parser.parse_file(os.path.join(master.current_project_dir, file))
+            print(parser.hit_objects[0].x)
+
     def drop_inside_list_box(self, event):
         self.listbox.insert("end", event.data)
 
     def refresh_list_box(self, event, master):
+        indices = self.listbox.curselection()
+        if indices:
+            file = self.listbox.get(indices[0])
+            self.initialize_config(master, file)
+        # TODO check if any change before refreshing
         self.listbox.delete(0, "end")
         if os.path.exists(master.current_project_dir):
             for file in os.listdir(master.current_project_dir):
@@ -319,6 +346,7 @@ class Project(tk.Frame):
 
     def create_new_difficulty(self):
         # TODO create a custom difficulty for the map
+        #  add it to the config so that the app remember
         pass
 
     def open_difficulty(self):
@@ -336,4 +364,5 @@ class Project(tk.Frame):
 
 if __name__ == "__main__":
     app = tkinterApp()
+    # app.eval('tk::PlaceWindow . center')
     app.mainloop()

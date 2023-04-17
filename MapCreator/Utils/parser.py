@@ -92,12 +92,13 @@ class Parse:
                     line = file.readline()
 
 
-PATH = "/MapCreator/datasets/maps/552854 REOL - YoiYoi Kokon/REOL - YoiYoi Kokon (Ongaku) [Easy].osu"
+
 
 if __name__ == "__main__":
+    PATH = "C:/Users/hugob/dev/python/OsuMapCreator/MapCreator/datasets/maps/552854 REOL - YoiYoi Kokon/REOL - YoiYoi Kokon (Ongaku) [Easy].osu"
     parser = Parse()
     parser.parse_file(PATH)
-    print(parser.general.AudioFilename)
+    print(parser.timing_points[0].time)
     # print([obj.__dict__ for obj in parser.hit_objects])
     # for obj in parser.hit_objects:
     #     # print(type(obj),obj.__dict__)

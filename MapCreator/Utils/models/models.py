@@ -1,6 +1,6 @@
+from dataclasses import dataclass
 from enum import Enum
 from typing import List, Optional
-import abc
 
 
 class SectionName(Enum):
@@ -14,6 +14,7 @@ class SectionName(Enum):
     HitObjects = "[HitObjects]"
 
 
+@dataclass
 class Section:
 
     def value(self, value):
@@ -29,6 +30,7 @@ class Section:
         ...
 
 
+@dataclass
 class HitSample:
     normalSet: int = 0  # SampleSet
     additionSet: int = 0  # SampleSet
@@ -50,65 +52,40 @@ class HitSample:
             return str(f"{self.normalSet}:{self.additionSet}:{self.index}:{self.volume}:")
 
 
+@dataclass
 class General(Section):
-
-    def __init__(self,
-                 AudioFilename: Optional[str] = None,
-                 AudioLeadIn: Optional[int] = 0,
-                 AudioHash: Optional[str] = None,
-                 PreviewTime: Optional[int] = -1,
-                 Countdown: Optional[int] = 1,
-                 SampleSet: Optional[str] = "Normal",  # SampleSet.Normal.value
-                 StackLeniency: Optional[float] = 0.7,
-                 Mode: Optional[int] = 0,
-                 LetterboxInBreaks: Optional[int] = 0,
-                 StoryFireInFront: Optional[int] = 1,
-                 UseSkinSprites: Optional[int] = 0,
-                 AlwaysShowPlayfield: Optional[int] = 0,
-                 OverlayPosition: Optional[str] = "NoChange",
-                 SkinPreference: Optional[str] = None,
-                 EpilepsyWarning: Optional[int] = 0,
-                 CountdownOffset: Optional[int] = 0,
-                 SpecialStyle: Optional[int] = 0,
-                 WidescreenStoryboard: Optional[int] = 0,
-                 SamplesMatchPlaybackRate: Optional[int] = 0):
-        self.AudioFilename = AudioFilename
-        self.OverlayPosition = OverlayPosition
-        self.EpilepsyWarning = EpilepsyWarning
-        self.SpecialStyle = SpecialStyle
-        self.SamplesMatchPlaybackRate = SamplesMatchPlaybackRate
-        self.WidescreenStoryboard = WidescreenStoryboard
-        self.CountdownOffset = CountdownOffset
-        self.SkinPreference = SkinPreference
-        self.UseSkinSprites = UseSkinSprites
-        self.AlwaysShowPlayfield = AlwaysShowPlayfield
-        self.LetterboxInBreaks = LetterboxInBreaks
-        self.StoryFireInFront = StoryFireInFront
-        self.Mode = Mode
-        self.StackLeniency = StackLeniency
-        self.SampleSet = SampleSet
-        self.Countdown = Countdown
-        self.PreviewTime = PreviewTime
-        self.AudioLeadIn = AudioLeadIn
-        self.AudioHash = AudioHash
+    AudioFilename: Optional[str] = None
+    AudioLeadIn: int = 0
+    AudioHash: Optional[str] = None  # deprecated
+    PreviewTime: int = -1
+    Countdown: int = 1
+    SampleSet: str = "Normal"
+    StackLeniency: float = 0.7
+    Mode: int = 0
+    LetterboxInBreaks: int = 0
+    StoryFireInFront: int = 1  # deprecated
+    UseSkinSprites: int = 0
+    AlwaysShowPlayfield: int = 0  # deprecated
+    OverlayPosition: str = "NoChange"
+    SkinPreference: Optional[str] = None
+    EpilepsyWarning: int = 0
+    CountdownOffset: int = 0
+    SpecialStyle: int = 0
+    WidescreenStoryboard: int = 0
+    SamplesMatchPlaybackRate: int = 0
 
     def parse_line(self, line: str):
         members = line.split(':')
         self.__setattr__(members[0], self.value(members[1]))
 
 
+@dataclass
 class Editor(Section):
-    def __init__(self,
-                 Bookmarks: Optional[List[int]] = None,
-                 DistanceSpacing: Optional[float] = None,
-                 BeatDivisor: Optional[int] = None,
-                 GridSize: Optional[int] = None,
-                 TimelineZoom: Optional[float] = None):
-        self.GridSize = GridSize
-        self.BeatDivisor = BeatDivisor
-        self.DistanceSpacing = DistanceSpacing
-        self.Bookmarks = Bookmarks
-        self.TimelineZoom = TimelineZoom
+    Bookmarks: Optional[List[int]] = None
+    DistanceSpacing: float = 1.22  # between 0.1 and 2.0
+    BeatDivisor: int = 4
+    GridSize: int = 4
+    TimelineZoom: float = 1.0  # between 0.1 and 8.0
 
     def parse_line(self, line: str):
         members = line.split(':')
@@ -118,29 +95,18 @@ class Editor(Section):
             self.__setattr__(members[0], self.value(members[1]))
 
 
+@dataclass
 class Metadata(Section):
-    def __init__(self,
-                 Title: Optional[str] = None,
-                 TitleUnicode: Optional[str] = None,
-                 Artist: Optional[str] = None,
-                 ArtistUnicode: Optional[str] = None,
-                 Creator: Optional[str] = None,
-                 Version: Optional[str] = None,
-                 Source: Optional[str] = None,
-                 Tags: Optional[List[str]] = None,
-                 BeatmapID: Optional[int] = None,
-                 BeatmapSetID: Optional[int] = None):
-
-        self.Tags = Tags
-        self.BeatmapSetID = BeatmapSetID
-        self.BeatmapID = BeatmapID
-        self.Source = Source
-        self.Version = Version
-        self.Creator = Creator
-        self.ArtistUnicode = ArtistUnicode
-        self.Artist = Artist
-        self.TitleUnicode = TitleUnicode
-        self.Title = Title
+    Title: Optional[str] = None
+    TitleUnicode: Optional[str]= None
+    Artist: Optional[str]= None
+    ArtistUnicode: Optional[str]= None
+    Creator: Optional[str]= None
+    Version: Optional[str]= None
+    Source: Optional[str] = None
+    Tags: Optional[List[str]] = None
+    BeatmapID: int = 0
+    BeatmapSetID: int = 0
 
     def parse_line(self, line: str):
         members = line.split(':')
@@ -150,13 +116,14 @@ class Metadata(Section):
             self.__setattr__(members[0], self.value(members[1]))
 
 
+@dataclass
 class Difficulty(Section):
-    HPDrainRate: float
-    CircleSize: float
-    OverallDifficulty: float
-    ApproachRate: float
-    SliderMultiplier: float
-    SliderTickRate: float
+    HPDrainRate: float = 5.0
+    CircleSize: float = 5.0
+    OverallDifficulty: float = 5.0
+    ApproachRate: float = 5.0
+    SliderMultiplier: float = 1.4
+    SliderTickRate: float = 1.0
 
     def parse_line(self, line: str):
         members = line.split(':')
@@ -199,16 +166,17 @@ class Storyboard(EventParams):
     pass
 
 
+@dataclass
 class TimingPoint(Section):
-    time: int
-    beatLength: float
-    meter: int
+    time: int = 0
+    beatLength: float = 0
+    meter: int= 0
     sampleSet: int = 1  # SampleSet = SampleSet.Normal.value
     sampleIndex: int = 0
     volume: int = 1
-    uninherited: int
+    uninherited: int = 0
     effects: int = 0  # Effect = None
-    bpm: int
+    bpm: Optional[int] = None
 
     def parse_line(self, line: str):
         members = line.split(",")
@@ -237,30 +205,14 @@ class ColourObject(Section):
         pass
 
 
+@dataclass
 class HitObject(Section):
-    # x: int
-    # y: int
-    # time: int
-    # type: int  # Type
-    # hitSound: int = 0
-    # hitSample: str  # Optional[HitSample]
-
-    def __init__(self,
-                 x: Optional[int] = 0,
-                 y: Optional[int] = 0,
-                 time: Optional[int] = 0,
-                 type: Optional[int] = 0,  # Type
-                 hitSound: Optional[int] = 0,
-                 hitSample: Optional[str] = None):
-        self.x = x
-        self.y = y
-        self.time = time
-        self.type = type
-        self.hitSound = hitSound
-        if hitSample is None:
-            self.hitSample = HitSample().__str__()
-        else:
-            self.hitSample = hitSample
+    x: int = 0
+    y: int = 0
+    time: int = 0
+    type: int = 0
+    hitSound: int = 0
+    hitSample: Optional[str] = HitSample().__str__()
 
     def __str__(self):
         return f"{self.x},{self.y},{self.time},{self.type},{self.hitSound},{self.hitSample}"
@@ -276,47 +228,9 @@ class HitObject(Section):
         else:
             return True
 
-    def get(self, _type):
-        return self.__dict__.get(str(_type))
 
-    def get_type(self, _type):
-        if _type & 1:
-            print("circle")
-        elif _type & 2:
-            print("slider")
-        elif _type & 8:
-            print("spinner")
-        # elif _type & 128:
-        #     print("mania")
-        else:
-            print("unknown type:", _type)
-
-    def is_slider(self, _type) -> bool:
-        if _type & 2:
-            return True
-        return False
-
-    def is_spinner(self, _type) -> bool:
-        if _type & 8:
-            return True
-        return False
-
-    def is_circle(self, _type) -> bool:
-        if _type & 1:
-            return True
-        return False
-
-
+@dataclass
 class Cercle(HitObject):
-
-    def __init__(self,
-                 x: Optional[int] = 0,
-                 y: Optional[int] = 0,
-                 time: Optional[int] = 0,
-                 type: Optional[int] = 0,  # Type
-                 hitSound: Optional[int] = 0,
-                 hitSample: Optional[str] = None):
-        super().__init__(x, y, time, type, hitSound, hitSample)
 
     def parse_line(self, line):
         members = line.split(",")
@@ -328,8 +242,9 @@ class Cercle(HitObject):
         self.hitSample = self.get_hit_sample(self.value(members[-1]))
 
 
+@dataclass
 class Spinner(HitObject):
-    endTime: int
+    endTime: int = 0
 
     def parse_line(self, line):
         members = line.split(",")
@@ -343,21 +258,23 @@ class Spinner(HitObject):
         self.hitSample = self.get_hit_sample(self.value(members[-1]))
 
 
+@dataclass
 class CurvePoint:
-    x: int
-    y: int
+    x: int = 0
+    y: int = 0
 
     def __str__(self):
         return f"{self.x}:{self.y}"
 
 
+@dataclass
 class Slider(HitObject):
-    curveType: str
-    curvePoints: List[CurvePoint]
-    slides: int
-    length: float
-    edgeSounds: str
-    edgeSets: str
+    curvePoints: List[CurvePoint] = None
+    slides: int = 0
+    length: float = 0.0
+    edgeSounds: str = ""
+    edgeSets: str = ""
+    curveType: str = ""
 
     def parse_line(self, line):
         members = line.split(",")

@@ -260,3 +260,4 @@ pip-selfcheck.json
 app/ui/maps/
 
 MapCreator/datasets/maps
+MapCreator/datasets/songs
