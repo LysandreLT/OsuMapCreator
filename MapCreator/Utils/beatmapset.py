@@ -5,6 +5,7 @@ from typing import List, Optional
 from MapCreator.Utils import utils
 from MapCreator.Utils.models.models import General, Editor, Metadata, Difficulty, HitObject, SectionName, Cercle, Event, \
     TimingPoint
+from MapCreator.music.music_analysis import compute_change_in_bpm
 
 
 class BeatmapSet:
@@ -32,12 +33,28 @@ class BeatmapSet:
     def build_difficulty(self, **kwargs):
         self.difficulty = Difficulty(**kwargs)
 
+    # [Events]
+    # // Background and Video events
+    # 0, 0, "yoiyoi2.jpg", 0, 0
+    # // Break Periods
+    # // Storyboard Layer 0(Background)
+    # // Storyboard Layer 1(Fail)
+    # // Storyboard Layer 2(Pass)
+    # // Storyboard Layer 3(Foreground)
+    # // Storyboard Layer 4(Overlay)
+    # // Storyboard Sound Samples
+    #
+    # [TimingPoints]
+    # 8692.70490823524, 428.571428571429, 4, 1, 0, 100, 1, 0 --> 60 * 1000 / 428.571 = 140 BPM --> 60 000 / BPM = beatLength
+
+
     def build_event(self, **kwargs):
         # one day maybe
         pass
 
     def build_timing_point(self, **kwargs):
         # one day maybe
+        # compute_change_in_bpm()
         pass
 
     def build_colour(self, **kwargs):
@@ -56,33 +73,33 @@ class BeatmapSet:
         # version
         self.file_name = f"{dir_path}/test-{name}.osu"
         self.file_format = "osu file format v14\n\n"
-        self.write_append(self.file_name, self.file_format)
+        self.write_append(self.file_name, self.file_format,'w')
 
         # general
         self.build_general(**{"AudioFilename": "audio.mp3"})
         resultList = [key + ":" + str(value) + "\n" for key, value in self.general.__dict__.items() if value != None]
-        self.write_append(self.file_name, SectionName.General.value + "\n")
-        self.write_append(self.file_name, resultList)
+        self.write_append(self.file_name, SectionName.General.value + "\n",'a')
+        self.write_append(self.file_name, resultList,'a')
 
         # editor
         self.build_editor()
         resultList = [key + ":" + str(value) + "\n" for key, value in self.editor.__dict__.items() if value != None]
-        self.write_append(self.file_name, "\n" + SectionName.Editor.value + "\n")
-        self.write_append(self.file_name, resultList)
+        self.write_append(self.file_name, "\n" + SectionName.Editor.value + "\n",'a')
+        self.write_append(self.file_name, resultList,'a')
 
         # metadata
         self.build_metadata(
             **{"Title": "test", "TitleUnicode": "test", "Artist": "test", "ArtistUnicode": "test", "Creator": "test",
                "Version": "Normal"})
         resultList = [key + ":" + str(value) + "\n" for key, value in self.metadata.__dict__.items() if value != None]
-        self.write_append(self.file_name, "\n" + SectionName.Metadata.value + "\n")
-        self.write_append(self.file_name, resultList)
+        self.write_append(self.file_name, "\n" + SectionName.Metadata.value + "\n",'a')
+        self.write_append(self.file_name, resultList,'a')
 
         # difficulty
         self.build_difficulty()
         resultList = [key + ":" + str(value) + "\n" for key, value in self.difficulty.__dict__.items() if value != None]
-        self.write_append(self.file_name, "\n" + SectionName.Difficulty.value + "\n")
-        self.write_append(self.file_name, resultList)
+        self.write_append(self.file_name, "\n" + SectionName.Difficulty.value + "\n",'a')
+        self.write_append(self.file_name, resultList,'a')
 
         # hit_object
         resultList = []
@@ -93,15 +110,15 @@ class BeatmapSet:
                    "hitSound": random.randrange(0, 3, 1)}).__str__() + "\n"
             resultList.append(hit_point)
 
-        self.write_append(self.file_name, "\n" + SectionName.HitObjects.value + "\n")
-        self.write_append(self.file_name, resultList)
+        self.write_append(self.file_name, "\n" + SectionName.HitObjects.value + "\n",'a')
+        self.write_append(self.file_name, resultList,'a')
 
     def send_to_zip_test(self, name, path):
         utils.write_osz_archive(directory=path,
                                 name=f"{path}/test-{name}")
 
-    def write_append(self, file_name, lines):
-        with open(file_name, 'a') as f:
+    def write_append(self, file_name, lines,mode):
+        with open(file_name, mode) as f:
             f.writelines(lines)
 
     def save_update(self):

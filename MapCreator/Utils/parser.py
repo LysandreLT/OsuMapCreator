@@ -3,7 +3,7 @@ import os
 import re
 from typing import List
 
-from MapCreator.Utils.models.models import General, Editor, Metadata, Difficulty, Event, TimingPoint, ColourObject, HitObject, SectionName, \
+from MapCreator.Utils.models.models import General, Editor, Metadata, Difficulty, Event, TimingPoint, ColourSection, HitObject, SectionName, \
     Slider, Spinner, Cercle
 
 
@@ -16,7 +16,7 @@ class Parse:
         self.difficulty = Difficulty()
         self.events: List[Event] = []
         self.timing_points: List[TimingPoint] = []
-        self.colours: List[ColourObject] = []
+        self.colours: List[ColourSection] = []
         self.hit_objects: List[HitObject] = []
 
         self.osu_section = ""

@@ -8,8 +8,10 @@ def compute_beat_track(path) -> ndarray:
     y, sr = librosa.load(path)
     onset_env = librosa.onset.onset_strength(y=y, sr=sr)
     tempo, beats = librosa.beat.beat_track(onset_envelope=onset_env,
-                                               units='time')
+                                           units='time')
     return beats * 1000
+
+
 def compute_plp(path) -> ndarray:
     y, sr = librosa.load(path)
     onset_env = librosa.onset.onset_strength(y=y, sr=sr)
@@ -17,6 +19,7 @@ def compute_plp(path) -> ndarray:
     times = librosa.times_like(pulse, sr=sr)
     beats_plp = np.flatnonzero(librosa.util.localmax(pulse))
     return times[beats_plp] * 1000
+
 
 def compute_plp_prior(path) -> ndarray:
     y, sr = librosa.load(path)
@@ -57,7 +60,7 @@ def compute_onset_superflux(path) -> ndarray:
     fmax = 16000.
     max_size = 3
     # we don't need the first 5 seconds
-    y = y[sr*4:]
+    y = y[sr * 4:]
 
     # create mel spectro
     S = librosa.feature.melspectrogram(y=y, sr=sr, n_fft=n_fft,
@@ -77,6 +80,34 @@ def compute_onset_superflux(path) -> ndarray:
                                           hop_length=hop_length,
                                           units='time')
     return onset_sf * 1000
+
+
+def compute_change_in_bpm(path):
+    dtempo, time = compute_local_bpm(path)
+    beats = []
+    curr_bpm = 0
+    for i in range(len(dtempo)):
+        if dtempo[i] != curr_bpm:
+            curr_bpm = dtempo[i]
+            beats.append([dtempo[i], time[i]])
+    return beats
+
+
+def compute_local_bpm(path):
+    y, sr = librosa.load(path)
+    onset_env = librosa.onset.onset_strength(y=y, sr=sr)
+    dtempo = librosa.feature.tempo(onset_envelope=onset_env, sr=sr,
+                                   aggregate=None)
+    dtempo_time = librosa.times_like(dtempo, sr=sr) * 1000
+
+    return [round(x) for x in dtempo], [round(x) for x in dtempo_time]
+
+
+# TODO create algo to center/tie the beatpoint time to the measure
+def correct_time(path):
+    beats = compute_change_in_bpm(path)
+    bpm = 0
+    pass
 
 
 def debug(path):

@@ -98,11 +98,11 @@ class Editor(Section):
 @dataclass
 class Metadata(Section):
     Title: Optional[str] = None
-    TitleUnicode: Optional[str]= None
-    Artist: Optional[str]= None
-    ArtistUnicode: Optional[str]= None
-    Creator: Optional[str]= None
-    Version: Optional[str]= None
+    TitleUnicode: Optional[str] = None
+    Artist: Optional[str] = None
+    ArtistUnicode: Optional[str] = None
+    Creator: Optional[str] = None
+    Version: Optional[str] = None
     Source: Optional[str] = None
     Tags: Optional[List[str]] = None
     BeatmapID: int = 0
@@ -170,7 +170,7 @@ class Storyboard(EventParams):
 class TimingPoint(Section):
     time: int = 0
     beatLength: float = 0
-    meter: int= 0
+    meter: int = 0
     sampleSet: int = 1  # SampleSet = SampleSet.Normal.value
     sampleIndex: int = 0
     volume: int = 1
@@ -193,16 +193,43 @@ class TimingPoint(Section):
     def calculate_bpm(self):
         self.bpm = round(60000 / self.beatLength)
 
+    def calculate_beat_length(self, bpm: int):
+        self.beatLength = 60000 / bpm
+
+
+class Colour:
+    R: int
+    G: int
+    B: int
+
 
 # TODO check wiki for colours
-class ColourObject(Section):
-    Combo: int
-    color: List[int]
+@dataclass
+class ColourSection(Section):
+    colours: List[Colour]
+    slider_body: Colour
+    slider_track_override: Colour
+    slider_border: Colour
 
     # SliderTrackOverride
     # SliderBorder
     def parse_line(self, line):
-        pass
+        members = line.split(":")
+        isCombo = line.startswith("Combo")
+        split = members[1].split(",")
+        if len(split) != 3 or len(split) != 4:
+            print(" invalid color")
+            return -1
+        assert 0 <= split[0] <= 255
+        assert 0 <= split[1] <= 255
+        assert 0 <= split[2] <= 255
+
+        if isCombo:
+            # {"R": split[0], "G": split[1], "B": split[2]}
+            self.colours.append(Colour(R=split[0], G=split[1], B=split[2]))
+        else:
+            # do nothing for the moment
+            pass
 
 
 @dataclass
