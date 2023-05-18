@@ -1,8 +1,17 @@
 import os
 import shutil
 import zipfile
+from enum import Enum
 
 import librosa as librosa
+
+
+class Type(Enum):
+    OSZ = "osz"
+    OSU = "osu"
+    JSON = "json"
+    ZIP = "zip"
+    CSV="csv"
 
 
 def readZip(file: str):
@@ -22,12 +31,6 @@ def isOSZFile(file: str):
         return False
     else:
         return True
-
-    # if zipfile.is_zipfile(fileName):
-    #     with zipfile.ZipFile(fileName, "r") as archive:
-    #         archive.printdir()
-    # else:
-    #     print("File is not an .osz file")
 
 
 def extractAll(file: str, dirPath: str):
@@ -51,13 +54,6 @@ def extract(file: str, zip_path: str, destDirPath: str):
         zip.extract(member=file, path=destDirPath)
 
 
-# def deleteFileAfterExtraction(file):
-#     if os.path.exists(file):
-#         os.remove(file)
-#     else:
-#         print("The file does not exist")
-#
-#
 def get_all_file_paths(directory):
     # initializing empty file paths list
     file_paths = []
@@ -74,15 +70,12 @@ def get_all_file_paths(directory):
 
 
 def write_archive(file_paths, name: str):
-    """
-    :param file_paths: list of files to zip
-    :param name: name of the zip file
-    """
     # writing files to a zipfile
     with zipfile.ZipFile(f'{name}.osz', 'w') as zip:
         # writing each file one by one
         for file in file_paths:
-            zip.write(file)
+
+            zip.write(file,arcname=os.path.basename(file))
     print('All files zipped successfully!')
 
 
@@ -96,6 +89,7 @@ def write_osz_archive(directory: str, name: str):
     write_archive(file_paths, name)
 
 
+
 def selectList(list):
     new_list = []
     for item in list:
@@ -107,8 +101,8 @@ def selectList(list):
 
 
 def get_duration(path):
-    y, sr = librosa.load(path, sr=44100)
-    return librosa.get_duration(y=y, sr=sr)
+    y, sr = librosa.load(path)
+    return librosa.get_duration(y=y)
 
 
 def post_treatment(path: str):
@@ -164,3 +158,4 @@ def clean_archive(path: str, dest: str):
         temp_path = dest + "/temp/"
         extractAll(path, temp_path)
         clean_archive_folder(temp_path, dest)
+
