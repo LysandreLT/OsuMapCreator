@@ -2,9 +2,8 @@
 import random
 from typing import List
 
-from MapCreator.Utils.beatmapset import BeatmapSet
-from MapCreator.Utils.models.models import HitObject, Cercle
-from MapCreator.Utils.utils import write_osz_archive
+from MapCreator.Utils.beatmap import BeatmapSet
+from MapCreator.Utils.models import HitObject, Cercle
 from MapCreator.music.music_analysis import compute_onset_superflux
 
 

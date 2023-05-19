@@ -1,4 +1,4 @@
-from MapCreator.Utils.beatmapset import BeatmapSet
+from MapCreator.Utils.beatmap import BeatmapSet
 from MapCreator.music import music_analysis
 
 # creation of beatmap based on the onset from peak to peak detection / beatrate, plp and other similar methods

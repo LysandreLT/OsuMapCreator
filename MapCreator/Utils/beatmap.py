@@ -1,25 +1,23 @@
 # create a beatmap set to give to the UI segment
-import os
 import random
-import zipfile
-from shutil import make_archive
 from typing import List, Optional
 
 from MapCreator.Utils import utils
-from MapCreator.Utils.models.models import General, Editor, Metadata, Difficulty, HitObject, SectionName, Cercle
+from MapCreator.Utils.models import General, Editor, Metadata, Difficulty, HitObject, SectionName, Cercle, Event, \
+    TimingPoint, ColourObject
 
 
-class BeatmapSet:
+class Beatmap:
     def __init__(self):
         self.file_name = ""
         self.file_format = ""
         self.general = None
         self.editor = None
         self.metadata = None
-        # self.difficulty = Difficulty()
-        # self.events: List[Event] = []
-        # self.timing_points: List[TimingPoint] = []
-        # self.colours: List[ColourObject] = []
+        self.difficulty = Difficulty()
+        self.events: List[Event] = []
+        self.timing_points: List[TimingPoint] = []
+        self.colours: List[ColourObject] = []
         self.hit_objects: List[HitObject] = []
 
     def build_general(self,
@@ -103,8 +101,9 @@ class BeatmapSet:
         self.write_append(self.file_name, "\n"+SectionName.Metadata.value + "\n")
         self.write_append(self.file_name, resultList)
 
-    def build_hit_points(self):
-        pass
+    def build_hit_objects(self, hitObjects: list):
+        self.hit_objects = hitObjects
+
 
     def build_beatmap_test(self,onsets,name):
         # for test purpose !!!
@@ -133,4 +132,3 @@ class BeatmapSet:
     def write_append(self, file_name, lines):
         with open(file_name, 'a') as f:
             f.writelines(lines)
-

@@ -3,11 +3,11 @@ import os
 import re
 from typing import List
 
-from MapCreator.Utils.models.models import General, Editor, Metadata, Difficulty, Event, TimingPoint, ColourObject, HitObject, SectionName, \
-    Slider, Spinner, Cercle
+from MapCreator.Utils.models import General, Editor, Metadata, Difficulty, Event, TimingPoint, ColourObject, HitObject,\
+    SectionName, Slider, Spinner, Cercle
 
 
-class Parse:
+class Parser:
     def __init__(self):
         self.file_format = ""
         self.general = General()
@@ -92,18 +92,15 @@ class Parse:
                     line = file.readline()
 
 
-PATH = "/MapCreator/datasets/maps/552854 REOL - YoiYoi Kokon/REOL - YoiYoi Kokon (Ongaku) [Easy].osu"
+PATH = "C:/Users/Lysandre/Documents/GitHub/OsuMapCreator/MapCreator/datasets/maps/67565 DragonForce - Valley of the " \
+       "Damned/DragonForce - Valley of the Damned (Kayne) [Apocalypse].osu"
 
 if __name__ == "__main__":
-    parser = Parse()
+    parser = Parser()
     parser.parse_file(PATH)
     print(parser.general.AudioFilename)
     # print([obj.__dict__ for obj in parser.hit_objects])
-    # for obj in parser.hit_objects:
-    #     # print(type(obj),obj.__dict__)
-    #     # print(obj.__dict__)
-    #     print(obj.get("time"))
-
-
-
-
+    for obj in parser.hit_objects:
+        print(type(obj), obj.__dict__)
+        print(obj.__dict__)
+        print(obj.get("time"))

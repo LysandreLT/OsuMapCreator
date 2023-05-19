@@ -241,7 +241,7 @@ class HitObject(Section):
     # x: int
     # y: int
     # time: int
-    # type: int  # Type
+    # type: int
     # hitSound: int = 0
     # hitSample: str  # Optional[HitSample]
 
