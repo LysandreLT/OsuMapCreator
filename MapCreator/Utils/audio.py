@@ -24,3 +24,5 @@ def write(f, sr, x, normalized=False):
     song = pydub.AudioSegment(y.tobytes(), frame_rate=sr, sample_width=2, channels=channels)
     song.export(f, format="mp3", bitrate="320k")
 
+sr, music = read("C:/Users/Lysandre/Documents/GitHub/OsuMapCreator/MapCreator/datasets/Musics/Smile-mileS (feat. なすお☆).mp3")
+

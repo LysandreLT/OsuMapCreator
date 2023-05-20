@@ -1,10 +1,12 @@
 import math
 import tensorflow as tf
+from keras_cv.models.stable_diffusion.diffusion_model import ResBlock, SpatialTransformer, Upsample
 from tensorflow import keras
-from keras import Model
-from keras import layers
-import matplotlib.pyplot as plt
-from MapCreator.Utils.audio import read
+import numpy as np
+from keras_cv.models.stable_diffusion.__internal__.layers.padded_conv2d import (
+    PaddedConv2D,
+)
+from keras_cv.models.stable_diffusion.constants import _ALPHAS_CUMPROD
 
 """
 Unet, deeplearning
@@ -12,299 +14,259 @@ Entrées : .txt, .MP3 (x minutes max)
 Sortie : .txt
 """
 
-
-# Hyperparamètres
-
-# data
-dataset_name = "OsuMaps"
-dataset_repetitions = 1
-num_epochs = 2  # train for at least 50 epochs for good results
-audio_size = 10000
-
-plot_diffusion_steps = 20
-
-# sampling
-min_signal_rate = 0.02
-max_signal_rate = 0.95
-
-# architecture
-embedding_dims = 32
-embedding_max_frequency = 1000.0
-widths = [32, 64, 96, 128]
-block_depth = 2
-
-# optimization
-batch_size = 64
-ema = 0.999
-learning_rate = 1e-3
-weight_decay = 1e-4
-
 # Fonctions
 
-def sinusoidal_embedding(x):
-    embedding_min_frequency = 1.0
-    frequencies = tf.exp(
-        tf.linspace(
-            tf.math.log(embedding_min_frequency),
-            tf.math.log(embedding_max_frequency),
-            embedding_dims // 2,
-        )
-    )
-    angular_speeds = 2.0 * math.pi * frequencies
-    embeddings = tf.concat(
-        [tf.sin(angular_speeds * x), tf.cos(angular_speeds * x)], axis=3
-    )
-    return embeddings
 
+class DiffusionModel(keras.Model):
+    def __init__(
+            self,
+            maxBeatmapSize,
+            maxAudioSize,
+            name=None,
+            download_weights=False,
+    ):
+        context = keras.layers.Input((maxAudioSize, 2))
+        t_embed_input = keras.layers.Input((320,))
+        latent = keras.layers.Input((maxBeatmapSize, 2, 2))
 
-def ResidualBlock(width):
-    def apply(x):
-        input_width = x.shape[3]
-        if input_width == width:
-            residual = x
-        else:
-            residual = layers.Conv2D(width, kernel_size=1)(x)
-        x = layers.BatchNormalization(center=False, scale=False)(x)
-        x = layers.Conv2D(
-            width, kernel_size=3, padding="same", activation=keras.activations.swish
-        )(x)
-        x = layers.Conv2D(width, kernel_size=3, padding="same")(x)
-        x = layers.Add()([x, residual])
-        return x
+        t_emb = keras.layers.Dense(1280)(t_embed_input)
+        t_emb = keras.layers.Activation("swish")(t_emb)
+        t_emb = keras.layers.Dense(1280)(t_emb)
 
-    return apply
+        # Downsampling flow
 
+        outputs = []
+        x = PaddedConv2D(320, kernel_size=3, padding=1)(latent)
+        outputs.append(x)
 
-def DownBlock(width, block_depth):
-    def apply(x):
-        x, skips = x
-        for _ in range(block_depth):
-            x = ResidualBlock(width)(x)
-            skips.append(x)
-        x = layers.AveragePooling2D(pool_size=2)(x)
-        return x
+        for _ in range(2):
+            x = ResBlock(320)([x, t_emb])
+            x = SpatialTransformer(5, 64, fully_connected=True)([x, context])
+            outputs.append(x)
+        x = PaddedConv2D(320, 3, strides=2, padding=1)(x)  # Downsample 2x
+        outputs.append(x)
 
-    return apply
+        for _ in range(2):
+            x = ResBlock(640)([x, t_emb])
+            x = SpatialTransformer(10, 64, fully_connected=True)([x, context])
+            outputs.append(x)
+        x = PaddedConv2D(640, 3, strides=2, padding=1)(x)  # Downsample 2x
+        outputs.append(x)
 
+        for _ in range(2):
+            x = ResBlock(1280)([x, t_emb])
+            x = SpatialTransformer(20, 64, fully_connected=True)([x, context])
+            outputs.append(x)
+        x = PaddedConv2D(1280, 3, strides=2, padding=1)(x)  # Downsample 2x
+        outputs.append(x)
 
-def UpBlock(width, block_depth):
-    def apply(x):
-        x, skips = x
-        x = layers.UpSampling2D(size=2, interpolation="bilinear")(x)
-        for _ in range(block_depth):
-            x = layers.Concatenate()([x, skips.pop()])
-            x = ResidualBlock(width)(x)
-        return x
+        for _ in range(2):
+            x = ResBlock(1280)([x, t_emb])
+            outputs.append(x)
 
-    return apply
+        # Middle flow
 
+        x = ResBlock(1280)([x, t_emb])
+        x = SpatialTransformer(20, 64, fully_connected=True)([x, context])
+        x = ResBlock(1280)([x, t_emb])
 
-def getNetwork(audio_file, beatmap, widths, block_depth):
-    music = keras.Input(shape=audio_file.shape())
-    noisy_beatmaps = keras.Input(shape=(beatmap.shape()))
-    noise_variances = keras.Input(shape=(1, 1, 1))
+        # Upsampling flow
 
-    e = layers.Lambda(sinusoidal_embedding)(noise_variances)
-    e = layers.UpSampling2D(size=musicDuration, interpolation="nearest")(e)
+        for _ in range(3):
+            x = keras.layers.Concatenate()([x, outputs.pop()])
+            x = ResBlock(1280)([x, t_emb])
+        x = Upsample(1280)(x)
 
-    x = layers.Conv2D(widths[0], kernel_size=1)(noisy_images)
-    x = layers.Concatenate()([x, e])
+        for _ in range(3):
+            x = keras.layers.Concatenate()([x, outputs.pop()])
+            x = ResBlock(1280)([x, t_emb])
+            x = SpatialTransformer(20, 64, fully_connected=True)([x, context])
+        x = Upsample(1280)(x)
 
-    skips = []
-    for width in widths[:-1]:
-        x = DownBlock(width, block_depth)([x, skips])
+        for _ in range(3):
+            x = keras.layers.Concatenate()([x, outputs.pop()])
+            x = ResBlock(640)([x, t_emb])
+            x = SpatialTransformer(10, 64, fully_connected=True)([x, context])
+        x = Upsample(640)(x)
 
-    for _ in range(block_depth):
-        x = ResidualBlock(widths[-1])(x)
+        for _ in range(3):
+            x = keras.layers.Concatenate()([x, outputs.pop()])
+            x = ResBlock(320)([x, t_emb])
+            x = SpatialTransformer(5, 64, fully_connected=True)([x, context])
 
-    for width in reversed(widths[:-1]):
-        x = UpBlock(width, block_depth)([x, skips])
+        # Exit flow
 
-    x = layers.Conv2D(3, kernel_size=1, kernel_initializer="zeros")(x)
+        x = keras.layers.GroupNormalization(epsilon=1e-5)(x)
+        x = keras.layers.Activation("swish")(x)
+        output = PaddedConv2D(4, kernel_size=3, padding=1)(x)
 
-    return keras.Model([noisy_beatmaps, noise_variances], x, name="residual_unet")
+        super().__init__([latent, t_embed_input, context], output, name=name)
 
+        if download_weights:
+            diffusion_model_weights_fpath = keras.utils.get_file(
+                origin="https://huggingface.co/ianstenbit/keras-sd2.1/resolve/main/diffusion_model_v2_1.h5",
+                # noqa: E501
+                file_hash="c31730e91111f98fe0e2dbde4475d381b5287ebb9672b1821796146a25c5132d",  # noqa: E501
+            )
+            self.load_weights(diffusion_model_weights_fpath)
 
-def networkSummary(model):
-    """"TODO"""
-
-    tf.keras.utils.plot_model(getNetwork(10000, widths, 2), to_file="modelPlot.png", show_shapes=False,
-                              show_layer_names=True)
 
 # Modèle
-class ElementPlacementIA(Model):
-    def __init__(self, audio_size, widths, block_depth):
-        super().__init__()
+class ElementPlacement:
+    def __init__(
+            self,
+            maxBeatmapSize,
+            maxAudioSize
+    ):
 
-        self.normalizer = layers.Normalization()
-        self.network = get_network(audio_file, beatmap, widths, block_depth)
-        self.ema_network = keras.models.clone_model(self.network)
+        self.maxBeatmapSize = maxBeatmapSize
+        self.maxAudioSize = maxAudioSize
 
-    def compile(self, **kwargs):
-        super().compile(**kwargs)
+        # lazy initialize the component models and the tokenizer
+        self._diffusion_model = None
 
-        self.noise_loss_tracker = keras.metrics.Mean(name="n_loss")
-        self.image_loss_tracker = keras.metrics.Mean(name="i_loss")
-        self.kid = KID(name="kid")
+    def generate_beatmap(
+            self,
+            encoded_music,
+            batch_size=1,
+            num_steps=50,
+            unconditional_guidance_scale=7.5,
+            diffusion_noise=None,
+            seed=None,
+    ):
+        """Generates a beatmap based on encoded music.
+
+        The encoding passed to this method should be derived from
+        `StableDiffusion.encode_music`.
+
+        Args:
+            encoded_music: Tensor of shape (`batch_size`, 77, 768), or a Tensor
+                of shape (77, 768). When the batch axis is omitted, the same
+                encoded text will be used to produce every generated image.
+            batch_size: int, number of images to generate, defaults to 1.
+            num_steps: int, number of diffusion steps (controls beatmap quality),
+                defaults to 50.
+            unconditional_guidance_scale: float, controlling how closely the
+                image should adhere to the prompt. Larger values result in more
+                closely adhering to the prompt, but will make the image noisier.
+                Defaults to 7.5.
+            diffusion_noise: Tensor of shape (`batch_size`, img_height // 8,
+                img_width // 8, 4), or a Tensor of shape (img_height // 8,
+                img_width // 8, 4). Optional custom noise to seed the diffusion
+                process. When the batch axis is omitted, the same noise will be
+                used to seed diffusion for every generated image.
+            seed: integer which is used to seed the random generation of
+                diffusion noise, only to be specified if `diffusion_noise` is
+                None.
+
+        Example:
+
+        ```python
+        from keras_cv.models import StableDiffusion
+
+        batch_size = 8
+        model = StableDiffusion(img_height=512, img_width=512, jit_compile=True)
+        e_tacos = model.encode_text("Tacos at dawn")
+        e_watermelons = model.encode_text("Watermelons at dusk")
+
+        e_interpolated = tf.linspace(e_tacos, e_watermelons, batch_size)
+        images = model.generate_image(e_interpolated, batch_size=batch_size)
+        ```
+        """
+        if diffusion_noise is not None and seed is not None:
+            raise ValueError(
+                "`diffusion_noise` and `seed` should not both be passed to "
+                "`generate_image`. `seed` is only used to generate diffusion "
+                "noise when it's not already user-specified."
+            )
+
+        context = self._expand_tensor(encoded_music, batch_size)
+
+        if diffusion_noise is not None:
+            diffusion_noise = tf.squeeze(diffusion_noise)
+            if diffusion_noise.shape.rank == 3:
+                diffusion_noise = tf.repeat(
+                    tf.expand_dims(diffusion_noise, axis=0), batch_size, axis=0
+                )
+            latent = diffusion_noise
+        else:
+            latent = self._get_initial_diffusion_noise(batch_size, seed)
+
+        # Iterative reverse diffusion stage
+        timesteps = tf.range(1, 1000, 1000 // num_steps)
+        alphas, alphas_prev = self._get_initial_alphas(timesteps)
+        progbar = keras.utils.Progbar(len(timesteps))
+        iteration = 0
+        for index, timestep in list(enumerate(timesteps))[::-1]:
+            latent_prev = latent  # Set aside the previous latent vector
+            t_emb = self._get_timestep_embedding(timestep, batch_size)
+
+            latent = self.diffusion_model.predict_on_batch(
+                [latent, t_emb, context]
+            )
+
+            a_t, a_prev = alphas[index], alphas_prev[index]
+            pred_x0 = (latent_prev - math.sqrt(1 - a_t) * latent) / math.sqrt(
+                a_t
+            )
+            latent = (
+                    latent * math.sqrt(1.0 - a_prev) + math.sqrt(a_prev) * pred_x0
+            )
+            iteration += 1
+            progbar.update(iteration)
+
+        # Decoding stage
+        decoded = self.decoder.predict_on_batch(latent)
+        decoded = ((decoded + 1) / 2) * 255
+        return np.clip(decoded, 0, 255).astype("uint8")
+
+    def _expand_tensor(self, text_embedding, batch_size):
+        """Extends a tensor by repeating it to fit the shape of the given batch
+        size."""
+        text_embedding = tf.squeeze(text_embedding)
+        if text_embedding.shape.rank == 2:
+            text_embedding = tf.repeat(
+                tf.expand_dims(text_embedding, axis=0), batch_size, axis=0
+            )
+        return text_embedding
 
     @property
-    def metrics(self):
-        return [self.noise_loss_tracker, self.image_loss_tracker, self.kid]
+    def diffusion_model(self):
+        """diffusion_model returns the diffusion model with pretrained weights.
+                Can be overriden for tasks where the diffusion model needs to be
+                modified.
+                """
+        if self._diffusion_model is None:
+            self._diffusion_model = DiffusionModel(
+                self.maxBeatmapSize, self.maxAudioSize
+            )
+        return self._diffusion_model
 
-    def denormalize(self, beatmaps):
-        # convert the pixel values back to 0-1 range
-        beatmaps = self.normalizer.mean + beatmaps * self.normalizer.variance**0.5
-        return tf.clip_by_value(beatmaps, 0.0, 1.0)
+    def _get_timestep_embedding(
+            self, timestep, batch_size, dim=320, max_period=10000
+    ):
+        half = dim // 2
+        freqs = tf.math.exp(
+            -math.log(max_period) * tf.range(0, half, dtype=tf.float32) / half
+        )
+        args = tf.convert_to_tensor([timestep], dtype=tf.float32) * freqs
+        embedding = tf.concat([tf.math.cos(args), tf.math.sin(args)], 0)
+        embedding = tf.reshape(embedding, [1, -1])
+        return tf.repeat(embedding, batch_size, axis=0)
 
-    def diffusion_schedule(self, diffusion_times):
-        # diffusion times -> angles
-        start_angle = tf.acos(max_signal_rate)
-        end_angle = tf.acos(min_signal_rate)
+    def _get_initial_alphas(self, timesteps):
+        alphas = [_ALPHAS_CUMPROD[t] for t in timesteps]
+        alphas_prev = [1.0] + alphas[:-1]
 
-        diffusion_angles = start_angle + diffusion_times * (end_angle - start_angle)
+        return alphas, alphas_prev
 
-        # angles -> signal and noise rates
-        signal_rates = tf.cos(diffusion_angles)
-        noise_rates = tf.sin(diffusion_angles)
-        # note that their squared sum is always: sin^2(x) + cos^2(x) = 1
-
-        return noise_rates, signal_rates
-
-    def denoise(self, noisy_beatmaps, noise_rates, signal_rates, training):
-        # the exponential moving average weights are used at evaluation
-        if training:
-            network = self.network
+    def _get_initial_diffusion_noise(self, batch_size, seed):
+        if seed is not None:
+            return tf.random.stateless_normal(
+                (batch_size, 20000, 2, 2),
+                seed=[seed, seed],
+            )
         else:
-            network = self.ema_network
-
-        # predict noise component and calculate the image component using it
-        pred_noises = network([noisy_beatmaps, noise_rates**2], training=training)
-        pred_beatmaps = (noisy_beatmaps - noise_rates * pred_noises) / signal_rates
-
-        return pred_noises, pred_beatmaps
-
-    def reverse_diffusion(self, initial_noise, diffusion_steps):
-        # reverse diffusion = sampling
-        num_beatmaps = initial_noise.shape[0]
-        step_size = 1.0 / diffusion_steps
-
-        # important line:
-        # at the first sampling step, the "noisy beatmap" is pure noise
-        # but its signal rate is assumed to be nonzero (min_signal_rate)
-        next_noisy_images = initial_noise
-        for step in range(diffusion_steps):
-            noisy_beatmaps = next_noisy_beatmaps
-
-            # separate the current noisy beatmap to its components
-            diffusion_times = tf.ones((num_beatmaps, 1, 1, 1)) - step * step_size
-            noise_rates, signal_rates = self.diffusion_schedule(diffusion_times)
-            pred_noises, pred_beatmaps = self.denoise(
-                noisy_beatmaps, noise_rates, signal_rates, training=False
+            return tf.random.normal(
+                (batch_size, 2000, 2, 2)
             )
-            # network used in eval mode
-
-            # remix the predicted components using the next signal and noise rates
-            next_diffusion_times = diffusion_times - step_size
-            next_noise_rates, next_signal_rates = self.diffusion_schedule(
-                next_diffusion_times
-            )
-            next_noisy_images = (
-                next_signal_rates * pred_beatmaps + next_noise_rates * pred_noises
-            )
-            # this new noisy beatmap will be used in the next step
-
-        return pred_beatmaps
-
-    def generate(self, num_beatmaps, diffusion_steps):
-        # noise -> images -> denormalized beatmaps
-        initial_noise = tf.random.normal(shape=(num_beatmaps, beatmap_size, image_size, 3))
-        generated_beatmaps = self.reverse_diffusion(initial_noise, diffusion_steps)
-        generated_beatmaps = self.denormalize(generated_beatmaps)
-        return generated_beatmaps
-
-    def train_step(self, images):
-        # normalize images to have standard deviation of 1, like the noises
-        images = self.normalizer(images, training=True)
-        noises = tf.random.normal(shape=(batch_size, image_size, image_size, 3))
-
-        # sample uniform random diffusion times
-        diffusion_times = tf.random.uniform(
-            shape=(batch_size, 1, 1, 1), minval=0.0, maxval=1.0
-        )
-        noise_rates, signal_rates = self.diffusion_schedule(diffusion_times)
-        # mix the images with noises accordingly
-        noisy_images = signal_rates * images + noise_rates * noises
-
-        with tf.GradientTape() as tape:
-            # train the network to separate noisy images to their components
-            pred_noises, pred_images = self.denoise(
-                noisy_images, noise_rates, signal_rates, training=True
-            )
-
-            noise_loss = self.loss(noises, pred_noises)  # used for training
-            image_loss = self.loss(images, pred_images)  # only used as metric
-
-        gradients = tape.gradient(noise_loss, self.network.trainable_weights)
-        self.optimizer.apply_gradients(zip(gradients, self.network.trainable_weights))
-
-        self.noise_loss_tracker.update_state(noise_loss)
-        self.image_loss_tracker.update_state(image_loss)
-
-        # track the exponential moving averages of weights
-        for weight, ema_weight in zip(self.network.weights, self.ema_network.weights):
-            ema_weight.assign(ema * ema_weight + (1 - ema) * weight)
-
-        # KID is not measured during the training phase for computational efficiency
-        return {m.name: m.result() for m in self.metrics[:-1]}
-
-    def test_step(self, images):
-        # normalize images to have standard deviation of 1, like the noises
-        images = self.normalizer(images, training=False)
-        noises = tf.random.normal(shape=(batch_size, image_size, image_size, 3))
-
-        # sample uniform random diffusion times
-        diffusion_times = tf.random.uniform(
-            shape=(batch_size, 1, 1, 1), minval=0.0, maxval=1.0
-        )
-        noise_rates, signal_rates = self.diffusion_schedule(diffusion_times)
-        # mix the images with noises accordingly
-        noisy_images = signal_rates * images + noise_rates * noises
-
-        # use the network to separate noisy images to their components
-        pred_noises, pred_images = self.denoise(
-            noisy_images, noise_rates, signal_rates, training=False
-        )
-
-        noise_loss = self.loss(noises, pred_noises)
-        image_loss = self.loss(images, pred_images)
-
-        self.image_loss_tracker.update_state(image_loss)
-        self.noise_loss_tracker.update_state(noise_loss)
-
-        # measure KID between real and generated images
-        # this is computationally demanding, kid_diffusion_steps has to be small
-        images = self.denormalize(images)
-        generated_images = self.generate(
-            num_images=batch_size, diffusion_steps=kid_diffusion_steps
-        )
-        self.kid.update_state(images, generated_images)
-
-        return {m.name: m.result() for m in self.metrics}
-
-    def plot_images(self, epoch=None, logs=None, num_rows=3, num_cols=6):
-        # plot random generated images for visual evaluation of generation quality
-        generated_images = self.generate(
-            num_images=num_rows * num_cols,
-            diffusion_steps=plot_diffusion_steps,
-        )
-
-        plt.figure(figsize=(num_cols * 2.0, num_rows * 2.0))
-        for row in range(num_rows):
-            for col in range(num_cols):
-                index = row * num_cols + col
-                plt.subplot(num_rows, num_cols, index + 1)
-                plt.imshow(generated_images[index])
-                plt.axis("off")
-        plt.tight_layout()
-        plt.show()
-        plt.close()
