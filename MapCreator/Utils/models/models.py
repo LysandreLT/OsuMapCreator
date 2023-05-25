@@ -38,12 +38,12 @@ class HitSample:
     volume: int = 0
     filename: Optional[str] = None
 
-    def set(self, normalSet: int, additionSet: int, index: int, volume: int, filename: Optional[str] = ""):
-        self.normalSet = normalSet
-        self.additionSet = additionSet
-        self.index = index
-        self.volume = volume
-        self.filename = filename
+    # def set(self, normalSet: int, additionSet: int, index: int, volume: int, filename: Optional[str] = ""):
+    #     self.normalSet = normalSet
+    #     self.additionSet = additionSet
+    #     self.index = index
+    #     self.volume = volume
+    #     self.filename = filename
 
     def __str__(self):
         if self.filename is not None:
@@ -176,7 +176,7 @@ class TimingPoint(Section):
     volume: int = 1
     uninherited: int = 0
     effects: int = 0  # Effect = None
-    bpm: Optional[int] = None
+    # bpm: Optional[int] = None
 
     def parse_line(self, line: str):
         members = line.split(",")
@@ -188,13 +188,16 @@ class TimingPoint(Section):
         self.volume = self.value(members[5])
         self.uninherited = self.value(members[6])
         self.effects = self.value(members[7])
-        self.calculate_bpm()
+        # self.calculate_bpm()
 
-    def calculate_bpm(self):
-        self.bpm = round(60000 / self.beatLength)
+    # def calculate_bpm(self):
+    #     self.bpm = round(60000 / self.beatLength)
 
     def calculate_beat_length(self, bpm: int):
         self.beatLength = 60000 / bpm
+
+    def __str__(self):
+        return ",".join([str(value) for value in self.__dict__.values() if value != None])
 
 
 class Colour:
@@ -321,8 +324,8 @@ class Slider(HitObject):
                 curve_point = CurvePoint()
                 curve_point.x = self.value(coordinates[0])
                 curve_point.y = self.value(coordinates[1])
-                # self.curvePoints.append(curve_point)
-                self.curvePoints.append(curve_point.__str__())
+                self.curvePoints.append(curve_point)
+                # self.curvePoints.append(curve_point.__str__())
 
         # Parse repeat slides bumber & length
         self.slides = int(members[6])

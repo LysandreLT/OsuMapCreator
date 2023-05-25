@@ -3,10 +3,14 @@ import os.path
 import shutil
 import tkinter as tk
 from tkinter import filedialog, messagebox, simpledialog
+from typing import List
 
 import mutagen
 from tkinterdnd2 import DND_FILES, TkinterDnD
 
+from MapCreator.Utils.beatmapset import BeatmapSet
+from MapCreator.Utils.models.models import General, TimingPoint, Event, Difficulty, Metadata, Editor, ColourSection, \
+    HitObject
 from MapCreator.Utils.parser import Parse
 from MapCreator.application.configuration import BeatmapConfig
 from MapCreator.application.model import ModelTest, ProjectPresentation
@@ -233,6 +237,8 @@ class NewProject(tk.Frame):
         # opening the project interface
         master.current_project_dir = project_dir
         shutil.move(src=self.audio_path.get(), dst=project_dir)
+        os.rename(os.path.join(project_dir, os.path.basename(self.audio_path.get())),
+                  os.path.join(project_dir, "audio.mp3"))
         master.switch_frame(Project)
 
 
@@ -287,17 +293,32 @@ class Project(tk.Frame):
         self.listbox.bind("<<ListboxSelect>>", lambda event: self.refresh_list_box(event, master))
         self.refresh_list_box(None, master)
 
-        frame_config = tk.Frame(_frame)
-        frame_config.place(relx=0.25)
-
-        self.config = BeatmapConfig(frame_config)
-        self.config.pack(side=tk.LEFT)
+        # Parser
+        self.parser: Parse = None
+        self.general: General = None
+        self.editor: Editor = None
+        self.metadata: Metadata = None
+        self.difficulty: Difficulty = None
+        # self.events:Event = None
+        self.timing_points: List[TimingPoint] = None
+        # self.colours:ColourSection = None
+        self.hit_objects: List[HitObject] = None
 
         # TODO here we take the first beatmap in the project folder --> to change
         for file in set(self.listbox.get(0, "end")):
-            self.initialize_config(master, file)
+            self.initialize_parsing(master, file)
             break
 
+        # self.initialize_config()
+
+        # config
+        frame_config = tk.Frame(_frame)
+        frame_config.place(relx=0.25)
+
+        self.config = BeatmapConfig(frame_config, self)
+        self.config.pack(side=tk.LEFT)
+
+        # btn
         tk.Button(frame_config, text="Save", command=self.save).pack()
         tk.Button(frame_config, text="Generate").pack()
         tk.Button(frame_config, text="Export").pack()
@@ -311,12 +332,22 @@ class Project(tk.Frame):
         # TODO add save btn to save modif --> rewrite all file?(utils/beatmapset)
         # TODO add beatmap creation btn
 
-    def initialize_config(self, master, file: str):
+    def initialize_parsing(self, master, file: str):
         if file.endswith(".osu"):
             # create a new parser each time we parse a map? should be a singleton or something similar
-            parser = Parse()
-            parser.parse_file(os.path.join(master.current_project_dir, file))
-            print(parser.hit_objects[0].x)
+            self.parser = Parse()
+            self.parser.parse_file(os.path.join(master.current_project_dir, file))
+            self.initialize_config()
+
+    def initialize_config(self):
+        if self.parser is not None:
+            self.general = self.parser.general
+            self.editor = self.parser.editor
+            self.metadata = self.parser.metadata
+            self.difficulty = self.parser.difficulty
+            self.timing_points = self.parser.timing_points
+            self.hit_objects = self.parser.hit_objects
+            print(self.general.__dict__)
 
     def drop_inside_list_box(self, event):
         self.listbox.insert("end", event.data)
@@ -325,7 +356,7 @@ class Project(tk.Frame):
         indices = self.listbox.curselection()
         if indices:
             file = self.listbox.get(indices[0])
-            self.initialize_config(master, file)
+            self.initialize_parsing(master, file)
         # TODO check if any change before refreshing
         self.listbox.delete(0, "end")
         if os.path.exists(master.current_project_dir):
@@ -333,8 +364,28 @@ class Project(tk.Frame):
                 if file not in set(self.listbox.get(0, "end")):
                     self.listbox.insert("end", file)
 
+    def fetch_metadata(self, beatmap):
+        self.metadata.Artist = self.config.tab_general.artist_textvar.get()
+        self.metadata.ArtistUnicode = self.config.tab_general.romanised_artist_textvar.get()
+        self.metadata.Title = self.config.tab_general.title_textvar.get()
+        self.metadata.TitleUnicode = self.config.tab_general.romanised_title_textvar.get()
+        self.metadata.Creator = self.config.tab_general.creator_textvar.get()
+        self.metadata.Version = self.config.tab_general.difficulty_textvar.get()
+        self.metadata.Source = self.config.tab_general.source_textvar.get()
+        self.metadata.Tags = self.config.tab_general.tags_textvar.get().split(" ")
+
+
+
+
+    def fetch_config(self, beatmap):
+        self.fetch_metadata(beatmap)
+
     def save(self):
-        pass
+        beatmap = BeatmapSet()
+        self.fetch_config(beatmap)
+        beatmap.build_general(**self.general.__dict__)
+        beatmap.build_metadata(**self.metadata.__dict__)
+        print(beatmap.metadata.Artist)
 
     def create(self):
         # TODO saving before creating (.osu)

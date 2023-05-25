@@ -4,12 +4,13 @@ from tkinter import ttk
 
 class TabGeneral(tk.Frame):
 
-    def __init__(self, master=None):
+    def __init__(self, master, project):
         tk.Frame.__init__(self, master)
 
         song_and_map_metadata_info_frame = tk.LabelFrame(self, text="Song and Map Metadata")
         song_and_map_metadata_info_frame.grid(row=0, column=0, padx=20, pady=20)
 
+        # Labels
         label_artist = tk.Label(song_and_map_metadata_info_frame, text="Artist")
         label_artist.grid(row=0, column=0, sticky="E")
         label_romanised_artist = tk.Label(song_and_map_metadata_info_frame, text="Romanised Artist")
@@ -27,26 +28,70 @@ class TabGeneral(tk.Frame):
         label_tags = tk.Label(song_and_map_metadata_info_frame, text="Tags")
         label_tags.grid(row=7, column=0, sticky="E")
 
-        entry_artist = tk.Entry(song_and_map_metadata_info_frame)
+        # Entry
+        # Artist
+        self.artist_textvar = tk.StringVar()
+        self.artist_textvar.set(project.metadata.Artist)
+        entry_artist = tk.Entry(song_and_map_metadata_info_frame, textvariable=self.artist_textvar)
         entry_artist.grid(row=0, column=1, sticky="EW")
-        entry_romanised_artist = tk.Entry(song_and_map_metadata_info_frame)
+        # Romanised Artist
+        self.romanised_artist_textvar = tk.StringVar()
+        self.romanised_artist_textvar.set(project.metadata.ArtistUnicode)
+        entry_romanised_artist = tk.Entry(song_and_map_metadata_info_frame, textvariable=self.romanised_artist_textvar)
         entry_romanised_artist.grid(row=1, column=1, sticky="EW")
-        entry_title = tk.Entry(song_and_map_metadata_info_frame)
+        # Title
+        self.title_textvar = tk.StringVar()
+        self.title_textvar.set(project.metadata.Title)
+        entry_title = tk.Entry(song_and_map_metadata_info_frame, textvariable=self.title_textvar)
         entry_title.grid(row=2, column=1, sticky="EW")
-        entry_romanised_title = tk.Entry(song_and_map_metadata_info_frame)
+        # Romanised Title
+        self.romanised_title_textvar = tk.StringVar()
+        self.romanised_title_textvar.set(project.metadata.TitleUnicode)
+        entry_romanised_title = tk.Entry(song_and_map_metadata_info_frame, textvariable=self.romanised_title_textvar)
         entry_romanised_title.grid(row=3, column=1, sticky="EW")
-        entry_beatmap_creator = tk.Entry(song_and_map_metadata_info_frame)
+        # Beatmap creator
+        self.creator_textvar = tk.StringVar()
+        self.creator_textvar.set(project.metadata.Creator)
+        entry_beatmap_creator = tk.Entry(song_and_map_metadata_info_frame, textvariable=self.creator_textvar)
         entry_beatmap_creator.grid(row=4, column=1, sticky="EW")
+        # difficulty
+        self.difficulty_values = ["", "Easy", "Normal", "Hard", "Insane"]
+        self.difficulty_textvar = tk.StringVar()
         combobox_difficulty = ttk.Combobox(song_and_map_metadata_info_frame,
-                                           values=["", "Easy", "Normal", "Hard", "Insane"])
+                                           values=self.difficulty_values, textvariable=self.difficulty_textvar)
         combobox_difficulty.grid(row=5, column=1, sticky="EW")
-        entry_source = tk.Entry(song_and_map_metadata_info_frame)
+        # if project.metadata.Version in self.difficulty_values:
+        #     difficulty_textvar.set(project.metadata.Version)
+        #
+        # else:
+        #     self.difficulty_values.append(project.metadata.Version)
+        #     difficulty_textvar.set(project.metadata.Version)
+        #     print(combobox_difficulty.current())
+
+        # Source
+        self.source_textvar = tk.StringVar()
+        self.source_textvar.set(project.metadata.Source)
+        entry_source = tk.Entry(song_and_map_metadata_info_frame, textvariable=self.source_textvar)
         entry_source.grid(row=6, column=1, sticky="EW")
-        entry_tags = tk.Entry(song_and_map_metadata_info_frame)
+        # Tags
+        self.tags_textvar = tk.StringVar()
+        self.tags_textvar.set(" ".join(project.metadata.Tags))
+        entry_tags = tk.Entry(song_and_map_metadata_info_frame, textvariable=self.tags_textvar)
         entry_tags.grid(row=7, column=1, sticky="EW")
+
+        # callback
+        self.artist_textvar.trace_add("write", callback=lambda name, index, mode,
+                                                               sv=self.artist_textvar: self.on_update_callback(sv,
+                                                                                                               self.romanised_artist_textvar))
+        self.title_textvar.trace_add("write",
+                                     callback=lambda name, index, mode, sv=self.title_textvar: self.on_update_callback(
+                                         sv, self.romanised_title_textvar))
 
         for widget in song_and_map_metadata_info_frame.winfo_children():
             widget.grid_configure(pady=2, padx=5)
+
+    def on_update_callback(self, from_stringvar: tk.StringVar, to_stringvar: tk.StringVar):
+        to_stringvar.set(from_stringvar.get())
 
 
 class TabDifficulty(tk.Frame):
@@ -108,12 +153,12 @@ class TabDifficulty(tk.Frame):
 
 class BeatmapConfig(tk.Frame):
 
-    def __init__(self, parent):
+    def __init__(self, parent, project):
         tk.Frame.__init__(self, parent)
 
         notebook = ttk.Notebook(self)
 
-        self.tab_general = TabGeneral(notebook)
+        self.tab_general = TabGeneral(notebook, project)
         self.tab_difficulty = TabDifficulty(notebook)
         self.tab_audio = TabDifficulty(notebook)
         self.tab_colours = TabDifficulty(notebook)

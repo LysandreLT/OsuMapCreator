@@ -76,7 +76,8 @@ def compute_onset_superflux(path) -> ndarray:
                                           lag=lag, max_size=max_size)
 
     onset_sf = librosa.onset.onset_detect(onset_envelope=odf_sf,
-                                          sr=sr,
+                                          # sr=sr,
+                                          # backtrack=True,
                                           hop_length=hop_length,
                                           units='time')
     return onset_sf * 1000

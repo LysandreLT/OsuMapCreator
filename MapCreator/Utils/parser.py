@@ -7,6 +7,19 @@ from MapCreator.Utils.models.models import General, Editor, Metadata, Difficulty
     Slider, Spinner, Cercle
 
 
+def getHitObjType(_type):
+    if _type & 1:
+        return Cercle()
+    elif _type & 2:
+        return Slider()
+    elif _type & 8:
+        return Spinner()
+    # elif _type & 128:
+    #     print("mania")
+    else:
+        return Cercle()
+
+
 class Parse:
     def __init__(self):
         self.file_format = ""
@@ -98,13 +111,13 @@ if __name__ == "__main__":
     PATH = "C:/Users/hugob/dev/python/OsuMapCreator/MapCreator/datasets/maps/552854 REOL - YoiYoi Kokon/REOL - YoiYoi Kokon (Ongaku) [Easy].osu"
     parser = Parse()
     parser.parse_file(PATH)
-    print(parser.timing_points[0].time)
-    # print([obj.__dict__ for obj in parser.hit_objects])
+    # print(parser.timing_points[0].time)
+    print(parser.hit_objects)
+    for o in parser.hit_objects:
+        if isinstance(o,Cercle):
+            print("true")
+        else:
+            print("false")
     # for obj in parser.hit_objects:
     #     # print(type(obj),obj.__dict__)
-    #     # print(obj.__dict__)
-    #     print(obj.get("time"))
-
-
-
-
+    #     print(obj.__dict__)
