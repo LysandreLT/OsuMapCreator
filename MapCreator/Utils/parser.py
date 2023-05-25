@@ -6,20 +6,6 @@ from typing import List
 from MapCreator.Utils.models.models import General, Editor, Metadata, Difficulty, Event, TimingPoint, ColourSection, HitObject, SectionName, \
     Slider, Spinner, Cercle
 
-
-def getHitObjType(_type):
-    if _type & 1:
-        return Cercle()
-    elif _type & 2:
-        return Slider()
-    elif _type & 8:
-        return Spinner()
-    # elif _type & 128:
-    #     print("mania")
-    else:
-        return Cercle()
-
-
 class Parse:
     def __init__(self):
         self.file_format = ""

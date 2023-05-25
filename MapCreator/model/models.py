@@ -1,4 +1,5 @@
 # import the necessary packages
+from keras.engine.input_layer import InputLayer
 from keras.models import Sequential
 from keras.layers import BatchNormalization
 from keras.layers import Conv2D
@@ -22,8 +23,10 @@ def create_mlp(dim, regress=False):
     # return our model
     return model
 
-
-def create_cnn(width, height, depth, filters=(16, 32, 64), regress=False):
+def create_difficulty():
+    input2 = InputLayer(input_shape=(1, 1))
+    return input2
+def create_cnn(width, height, depth, filters=(16, 32, 64, 128, 256), regress=False):
     # initialize the input shape and channel dimension, assuming
     # TensorFlow/channels-last ordering
     inputShape = (height, width, depth)

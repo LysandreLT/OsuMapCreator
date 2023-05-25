@@ -1,12 +1,12 @@
-import numpy
+import os.path
+
+import cv2
+import librosa
+import numpy as np
 import pandas as pd
+import skimage
 from sklearn.preprocessing import LabelBinarizer
 from sklearn.preprocessing import MinMaxScaler
-import pandas as pd
-import numpy as np
-import glob
-import cv2
-import os
 
 from MapCreator.Utils.models.models import Spinner, Cercle, Slider
 from MapCreator.Utils.parser import Parse
@@ -17,97 +17,59 @@ def load_beatmap_attributes(path):
 
     parser = Parse()
     parser.parse_file(path)
+    max_hit_object = 2000
+    data = np.zeros((13, max_hit_object), dtype=object)
 
-    x = []
-    y = []
-    time = []
-    type = []
-    endtime = []
-    x2 = []
-    y2 = []
-    x3 = []
-    y3 = []
-    x4 = []
-    y4 = []
-    x5 = []
-    y5 = []
-    slide = []
-    length = []
+    for (i, o) in enumerate(parser.hit_objects):
 
-    for o in parser.hit_objects:
-        x.append(o.x)
-        y.append(o.y)
-        time.append(o.time)
-        type.append(o.type)
-        if isinstance(o, Cercle):
-            endtime.append(0)
-            x2.append(0)
-            y2.append(0)
-            x3.append(0)
-            y3.append(0)
-            x4.append(0)
-            y4.append(0)
-            slide.append(0)
-            length.append(0)
-        elif isinstance(o, Spinner):
-            endtime.append(o.endTime)
-            x2.append(0)
-            x2.append(0)
-            x3.append(0)
-            x3.append(0)
-            x4.append(0)
-            x4.append(0)
-            slide.append(0)
-            length.append(0)
-        elif isinstance(o, Slider):
-            endtime.append(0)
-            x2.append(o.curvePoints[0].x)
-            y2.append(o.curvePoints[0].y)
+        if i < max_hit_object:
 
-            if len(o.curvePoints) > 1:
-                x3.append(o.curvePoints[1].x)
-                y3.append(o.curvePoints[1].y)
-            else:
-                x3.append(0)
-                y3.append(0)
+            data[0][i] = o.x
+            data[1][i] = o.y
+            data[2][i] = o.time
+            data[3][i] = o.type
 
-            if len(o.curvePoints) > 2:
-                x4.append(o.curvePoints[2].x)
-                y4.append(o.curvePoints[2].y)
-            else:
-                x4.append(0)
-                y4.append(0)
+            if isinstance(o, Cercle):
+                pass
+            elif isinstance(o, Spinner):
+                data[4][i] = o.endTime
+            elif isinstance(o, Slider):
+                data[5][i] = o.curvePoints[0].x
+                data[6][i] = o.curvePoints[0].y
 
-            slide.append(o.slides)
-            length.append(o.length)
-        else:
-            endtime.append(0)
-            x2.append(0)
-            y2.append(0)
-            x3.append(0)
-            y3.append(0)
-            x4.append(0)
-            y4.append(0)
-            slide.append(0)
-            length.append(0)
+                if len(o.curvePoints) > 1:
+                    data[7][i] = o.curvePoints[1].x
+                    data[8][i] = o.curvePoints[1].y
 
-    d = [x, y, time, type, endtime, x2, y2, x3, y3, x4, y4, slide, length]
+                if len(o.curvePoints) > 2:
+                    data[9][i] = o.curvePoints[2].x
+                    data[10][i] = o.curvePoints[2].y
 
-    df_t = pd.DataFrame(d).T
+                data[11][i] = o.slides
+                data[12][i] = o.length
+
+    df_t = pd.DataFrame(data).T
     df = pd.DataFrame(df_t.values.tolist(), columns=cols)
-    df.drop(df.tail(1).index,
-            inplace=True)
-    print(df.to_numpy())
-    return df
+    df = pd.DataFrame(df.values.tolist()).T
+    # df.drop(df.tail(1).index,
+    #         inplace=True)
+    # print(df.loc[len(parser.hit_objects), :])
+    return df.to_numpy(dtype=object), parser.difficulty.OverallDifficulty
 
 
 def load_beatmaps(paths):
     arr = []
+    diff = []
     for path in paths:
-        df_temp = load_beatmap_attributes(path)
+        print(path[0])
+        df_temp, difficulty = load_beatmap_attributes(path[0])
+        print(df_temp.shape)
         arr.append(df_temp)
-    df = pd.DataFrame(arr)
-    return df
+        diff.append(difficulty)
+    print(np.array(arr, dtype=object).shape)
+    diff = np.array(diff, dtype=float)
+    df = np.asarray(arr, dtype=object)
+    return df, diff
 
 
 def process_beatmaps_attributes(df, train, test):
@@ -131,6 +93,74 @@ def process_beatmaps_attributes(df, train, test):
     return (trainX, testX)
 
 
+def scale_minmax(X, min=0.0, max=1.0):
+    X_std = (X - X.min()) / (X.max() - X.min())
+    X_scaled = X_std * (max - min) + min
+    return X_scaled
+
+
+def create_images(paths, base_path):
+    for p in paths:
+        temp = f"{base_path}/images/{os.path.basename(os.path.dirname(p[1]))}.png"
+        if os.path.exists(temp):
+            pass
+        else:
+            create_image(p[1])
+
+
+def create_image(audio_path):
+    # settings
+    hop_length = 512  # number of samples per time-step in spectrogram
+    n_mels = 128  # number of bins in spectrogram. Height of image
+    time_steps = 384  # number of time-steps. Width of image
+
+    # load audio. Using example from librosa
+
+    y, sr = librosa.load(audio_path, sr=44100)
+    out_pure_data = f"C:/Users/hugob/dev/python/OsuMapCreator/MapCreator/datasets/images/{os.path.basename(os.path.dirname(audio_path))}.png"
+
+    # extract a fixed length window
+    start_sample = 0  # starting at beginning
+    length_samples = time_steps * hop_length
+    # window = y[start_sample:start_sample + length_samples]
+    window = y
+    # convert to PNG
+    spectrogram_image(window, sr=sr, out=out_pure_data, hop_length=hop_length, n_mels=n_mels)
+    print('wrote file', out_pure_data)
+
+
+def spectrogram_image(y, sr, out, hop_length, n_mels):
+    # use log-melspectrogram
+    mels = librosa.feature.melspectrogram(y=y, sr=sr, n_mels=n_mels,
+                                          n_fft=hop_length * 2, hop_length=hop_length)
+    mels = np.log(mels + 1e-9)  # add small number to avoid log(0)
+
+    # min-max scale to fit inside 8-bit range
+    img = scale_minmax(mels, 0, 255).astype(np.uint8)
+    img = np.flip(img, axis=0)  # put low frequencies at the bottom in image
+    img = 255 - img  # invert. make black==more energy
+
+    # save as PNG
+    skimage.io.imsave(out, img)
+
+
+def get_paths(dir_path):
+    file_paths = []
+    audio_path = ""
+    for root, directories, files in os.walk(dir_path):
+        for filename in files:
+            # join the two strings in order to form the full filepath.
+            if filename.endswith(".mp3"):
+                audio_path = os.path.join(root, filename)
+            else:
+                if audio_path != "":
+                    filepath = os.path.join(root, filename)
+                    file_paths.append((filepath, audio_path))
+
+    # returning all file paths
+    return file_paths
+
+
 def load_spectrogramm_image(paths):
     # image = np.zeros((64, 64, 3), dtype="uint8")
     images = []
@@ -141,7 +171,7 @@ def load_spectrogramm_image(paths):
 
 
 if __name__ == "__main__":
-    PATH1 = "C:/Users/hugob/dev/python/OsuMapCreator/MapCreator/datasets/maps/552854 REOL - YoiYoi Kokon/REOL - YoiYoi Kokon (Ongaku) [Hyperion's Overdose].osu"
-    PATH2 = "C:/Users/hugob/dev/python/OsuMapCreator/MapCreator/datasets/maps/552854 REOL - YoiYoi Kokon/REOL - YoiYoi Kokon (Ongaku) [Hyperion's Overdose].osu"
-    PATH3 = "C:/Users/hugob/dev/python/OsuMapCreator/MapCreator/datasets/maps/552854 REOL - YoiYoi Kokon/REOL - YoiYoi Kokon (Ongaku) [Hyperion's Rain].osu"
-    PATH = [PATH3, PATH2, PATH1]
+    base_path = "C:/Users/hugob/dev/python/OsuMapCreator/MapCreator/datasets"
+    paths = get_paths(base_path + "/maps")
+    df, diff = load_beatmaps(paths)
+    create_images(paths, base_path)
