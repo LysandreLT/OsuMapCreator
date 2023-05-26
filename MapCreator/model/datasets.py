@@ -1,4 +1,5 @@
 import os.path
+from typing import List
 
 import cv2
 import librosa
@@ -22,7 +23,10 @@ def load_beatmap_attributes(path):
 
     for (i, o) in enumerate(parser.hit_objects):
 
-        if i < max_hit_object:
+        if i >= max_hit_object:
+            break
+
+        else:
 
             data[0][i] = o.x
             data[1][i] = o.y
@@ -57,40 +61,40 @@ def load_beatmap_attributes(path):
     return df.to_numpy(dtype=object), parser.difficulty.OverallDifficulty
 
 
-def load_beatmaps(paths):
+def load_beatmaps(paths:List[tuple(str, str)]):
     arr = []
     diff = []
     for path in paths:
-        print(path[0])
+        print("map : ", path[0], " || audio : ", path[1])
         df_temp, difficulty = load_beatmap_attributes(path[0])
-        print(df_temp.shape)
+        # print(df_temp.shape)
         arr.append(df_temp)
         diff.append(difficulty)
-    print(np.array(arr, dtype=object).shape)
+    # print(np.array(arr, dtype=object).shape)
     diff = np.array(diff, dtype=float)
     df = np.asarray(arr, dtype=object)
     return df, diff
 
 
-def process_beatmaps_attributes(df, train, test):
-    # initialize the column names of the continuous data
-    continuous = ["bedrooms", "bathrooms", "area"]
-    # performin min-max scaling each continuous feature column to
-    # the range [0, 1]
-    cs = MinMaxScaler()
-    trainContinuous = cs.fit_transform(train[continuous])
-    testContinuous = cs.transform(test[continuous])
-    # one-hot encode the zip code categorical data (by definition of
-    # one-hot encoding, all output features are now in the range [0, 1])
-    zipBinarizer = LabelBinarizer().fit(df["zipcode"])
-    trainCategorical = zipBinarizer.transform(train["zipcode"])
-    testCategorical = zipBinarizer.transform(test["zipcode"])
-    # construct our training and testing data points by concatenating
-    # the categorical features with the continuous features
-    trainX = np.hstack([trainCategorical, trainContinuous])
-    testX = np.hstack([testCategorical, testContinuous])
-    # return the concatenated training and testing data
-    return (trainX, testX)
+# def process_beatmaps_attributes(df, train, test):
+#     # initialize the column names of the continuous data
+#     continuous = ["bedrooms", "bathrooms", "area"]
+#     # performin min-max scaling each continuous feature column to
+#     # the range [0, 1]
+#     cs = MinMaxScaler()
+#     trainContinuous = cs.fit_transform(train[continuous])
+#     testContinuous = cs.transform(test[continuous])
+#     # one-hot encode the zip code categorical data (by definition of
+#     # one-hot encoding, all output features are now in the range [0, 1])
+#     zipBinarizer = LabelBinarizer().fit(df["zipcode"])
+#     trainCategorical = zipBinarizer.transform(train["zipcode"])
+#     testCategorical = zipBinarizer.transform(test["zipcode"])
+#     # construct our training and testing data points by concatenating
+#     # the categorical features with the continuous features
+#     trainX = np.hstack([trainCategorical, trainContinuous])
+#     testX = np.hstack([testCategorical, testContinuous])
+#     # return the concatenated training and testing data
+#     return (trainX, testX)
 
 
 def scale_minmax(X, min=0.0, max=1.0):
@@ -105,10 +109,10 @@ def create_images(paths, base_path):
         if os.path.exists(temp):
             pass
         else:
-            create_image(p[1])
+            create_image(p[1], base_path)
 
 
-def create_image(audio_path):
+def create_image(audio_path, base_path):
     # settings
     hop_length = 512  # number of samples per time-step in spectrogram
     n_mels = 128  # number of bins in spectrogram. Height of image
@@ -117,7 +121,7 @@ def create_image(audio_path):
     # load audio. Using example from librosa
 
     y, sr = librosa.load(audio_path, sr=44100)
-    out_pure_data = f"C:/Users/hugob/dev/python/OsuMapCreator/MapCreator/datasets/images/{os.path.basename(os.path.dirname(audio_path))}.png"
+    out_pure_data = f"{base_path}/images/{os.path.basename(os.path.dirname(audio_path))}.png"
 
     # extract a fixed length window
     start_sample = 0  # starting at beginning
@@ -171,7 +175,13 @@ def load_spectrogramm_image(paths):
 
 
 if __name__ == "__main__":
+    """
+    base_path: path of the datasets folder containing a maps folder and an image folder
+    you can extract you map into the maps folder
+    the image in the image folder will be automatically generated if function called
+    """
     base_path = "C:/Users/hugob/dev/python/OsuMapCreator/MapCreator/datasets"
     paths = get_paths(base_path + "/maps")
+    print(paths)
     df, diff = load_beatmaps(paths)
     create_images(paths, base_path)

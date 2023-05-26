@@ -21,8 +21,9 @@ import os
 # on each house in the dataset and then load the dataset
 print("[INFO] loading beatmap attributes...")
 base_path = "C:/Users/hugob/dev/python/OsuMapCreator/MapCreator/datasets"
-inputPath = os.path.sep.join(base_path, "/maps")
-df, difficulty = datasets.load_beatmaps(inputPath)
+
+paths = datasets.get_paths(os.path.sep.join(base_path, "/maps"))
+df, difficulty = datasets.load_beatmaps(paths)
 # load the spectrogram images and then scale the pixel intensities to the
 # range [0, 1]
 print("[INFO] loading spectrogram images...")
