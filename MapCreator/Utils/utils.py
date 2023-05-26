@@ -11,7 +11,7 @@ class Type(Enum):
     OSU = "osu"
     JSON = "json"
     ZIP = "zip"
-    CSV="csv"
+    CSV = "csv"
 
 
 def readZip(file: str):
@@ -74,8 +74,7 @@ def write_archive(file_paths, name: str):
     with zipfile.ZipFile(f'{name}.osz', 'w') as zip:
         # writing each file one by one
         for file in file_paths:
-
-            zip.write(file,arcname=os.path.basename(file))
+            zip.write(file, arcname=os.path.basename(file))
     print('All files zipped successfully!')
 
 
@@ -87,7 +86,6 @@ def write_osz_archive(directory: str, name: str):
     # calling function to get all file paths in the directory
     file_paths = get_all_file_paths(directory)
     write_archive(file_paths, name)
-
 
 
 def selectList(list):
@@ -105,19 +103,47 @@ def get_duration(path):
     return librosa.get_duration(y=y)
 
 
-def post_treatment(path: str):
-    if os.path.isdir(path):
-        list = os.listdir(path)
-        for file in list:
-            if file.split(".")[-1] != "osu":
-                duration = get_duration(os.path.join(path, file))
-                if duration < 20:
-                    delete_tree(os.path.join(path, file))
-    else:
-        if path.split(".")[-1] != "osu":
-            duration = get_duration(os.path.realpath(path))
-            if duration < 20:
-                delete_tree(path)
+def delete_audio_by_duration(files):
+    for path in files:
+        duration = get_duration(path)
+        if duration < 15:
+            delete_tree(path)
+
+
+def check_if_contain_abnormal_audio_files(dir):
+    files = librosa.util.find_files(dir, ext=['mp3', 'ogg'])
+    if not files:
+        print(f"dir : {dir} deleted!")
+        # delete_tree(dir)
+    elif len(files) > 1:
+        print(f" in directory '{dir}' , more than 1 audio file detected!")
+
+
+def filter_audio(dir_path):
+    files = librosa.util.find_files(directory=dir_path, ext=['mp3', 'ogg'], recurse=True)
+    delete_audio_by_duration(files)
+
+    # for root, directories, files in os.walk(dir_path):
+    #     for directory in directories:
+    #         files = librosa.util.find_files(os.path.join(root, directory), ext=['mp3', 'ogg'], recurse=True)
+    #         delete_audio_by_duration(files)
+    #         check_if_contain_abnormal_audio_files(os.path.join(root, directory))
+
+
+# def post_treatment(path: str):
+#     if os.path.isdir(path):
+#         list = os.listdir(path)
+#         for file in list:
+#             if file.split(".")[-1] != "osu":
+#                 filter_audio(path, file)
+#                 duration = get_duration(os.path.join(path, file))
+#                 if duration < 20:
+#                     delete_tree(os.path.join(path, file))
+#     else:
+#         if path.split(".")[-1] != "osu":
+#             duration = get_duration(os.path.realpath(path))
+#             if duration < 20:
+#                 delete_tree(path)
 
 
 def clean_archive_folder(path: str, dest: str) -> None:
@@ -153,9 +179,13 @@ def clean_archive(path: str, dest: str):
             # os.makedirs(dir_path)
         for items in clean_list:
             extract(items, path, dir_path)
-        post_treatment(dir_path)
+        # post_treatment(dir_path)
     elif isArchive(path):
         temp_path = dest + "/temp/"
         extractAll(path, temp_path)
         clean_archive_folder(temp_path, dest)
 
+
+if __name__ == "__main__":
+    DIR = "C:/Users/hugob/dev/python/OsuMapCreator/MapCreator/datasets/maps"
+    filter_audio(DIR)

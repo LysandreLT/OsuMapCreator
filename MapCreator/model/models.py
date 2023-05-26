@@ -10,6 +10,7 @@ from keras.layers import Dense
 from keras.layers import Flatten
 from keras.layers import Input
 from keras.models import Model
+from keras.layers import concatenate
 
 
 def create_mlp(dim, regress=False):
@@ -23,9 +24,13 @@ def create_mlp(dim, regress=False):
     # return our model
     return model
 
+
 def create_difficulty():
-    input2 = InputLayer(input_shape=(1, 1))
-    return input2
+    input2 = InputLayer(input_shape=(1,))
+    model = Model(input2)
+    return model
+
+
 def create_cnn(width, height, depth, filters=(16, 32, 64, 128, 256), regress=False):
     # initialize the input shape and channel dimension, assuming
     # TensorFlow/channels-last ordering
@@ -62,3 +67,25 @@ def create_cnn(width, height, depth, filters=(16, 32, 64, 128, 256), regress=Fal
         model = Model(inputs, x)
         # return the CNN
         return model
+
+
+def get_model(trainAttrX_shape, trainDiffX_shape):
+    # create the MLP and CNN models
+    mlp = create_mlp(trainAttrX_shape, regress=False)
+    cnn = create_cnn(64, 64, 3, regress=False)
+    diff = create_difficulty(trainDiffX_shape)
+    # create the input to our final set of layers as the *output* of both
+    # the MLP and CNN
+    combinedInput = concatenate([mlp.output, cnn.output, diff.output])
+    ####################################################################
+    # combinedInput = concatenate([mlp.output, cnn.output,difficulty]) #
+    ####################################################################
+    # our final FC layer head will have two dense layers, the final one
+    # being our regression head
+    x = Dense(4, activation="relu")(combinedInput)
+    x = Dense(1, activation="linear")(x)
+    # our final model will accept categorical/numerical data on the MLP
+    # input and images on the CNN input, outputting a single value (the
+    # predicted price of the house)
+    model = Model(inputs=[cnn.input, diff.input], outputs=mlp.input)
+    return model

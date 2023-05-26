@@ -71,6 +71,7 @@ def load_beatmaps(paths: List):
         diff.append(difficulty)
     # print(np.array(arr, dtype=object).shape)
     diff = np.array(diff, dtype=float)
+    print(diff.shape)
     df = np.asarray(arr, dtype=object)
     return df, diff
 
@@ -189,6 +190,5 @@ if __name__ == "__main__":
     """
     base_path = "C:/Users/hugob/dev/python/OsuMapCreator/MapCreator/datasets"
     paths = get_paths(os.path.join(base_path, "maps"))
-    print(paths)
     df, diff = load_beatmaps(paths)
     create_images(paths, base_path)
