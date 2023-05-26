@@ -1,20 +1,33 @@
-import tensorflow as tf
+from MapCreator.Utils.audio import read
+from MapCreator.IA.ElementPlacementIA import getModel
+from tensorflow import keras
+from MapCreator.Utils.parser import *
+from MapCreator.Utils.trainingMapParser import *
 
-mnist = tf.keras.datasets.mnist
 
-(x_train, y_train),(x_test, y_test) = mnist.load_data()
-x_train, x_test = x_train / 255.0, x_test / 255.0
+basePath = ""
+paths = get_paths(basePath)
+df, diff = load_beatmaps(paths)
+(x_train, y_train), (x_test, y_test) =
 
-model = tf.keras.models.Sequential([
-  tf.keras.layers.Flatten(input_shape=(28, 28)),
-  tf.keras.layers.Dense(128, activation='relu'),
-  tf.keras.layers.Dropout(0.2),
-  tf.keras.layers.Dense(10, activation='softmax')
-])
+model = getModel()
 
-model.compile(optimizer='adam',
-              loss='sparse_categorical_crossentropy',
-              metrics=['accuracy'])
+model.compile(
+    optimizer=keras.optimizers.Adam,
+    loss=keras.losses.MeanAbsoluteError(),
+)
 
-model.fit(x_train, y_train, epochs=5)
-model.evaluate(x_test, y_test)
+history = model.fit(
+    x_train,
+    y_train,
+    batch_size=64,
+    epochs=2,
+    # We pass some validation for
+    # monitoring validation loss and metrics
+    # at the end of each epoch
+    validation_data=(x_val, y_val),
+)
+
+sr, music = read(
+    "C:/Users/Lysandre/Documents/GitHub/OsuMapCreator/MapCreator/datasets/Musics/Smile-mileS (feat. なすお☆).mp3")
+print(music.shape)
