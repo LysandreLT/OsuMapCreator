@@ -61,11 +61,10 @@ def load_beatmap_attributes(path):
     return df.to_numpy(dtype=object), parser.difficulty.OverallDifficulty
 
 
-def load_beatmaps(paths:List[tuple(str, str)]):
+def load_beatmaps(paths: List):
     arr = []
     diff = []
     for path in paths:
-        print("map : ", path[0], " || audio : ", path[1])
         df_temp, difficulty = load_beatmap_attributes(path[0])
         # print(df_temp.shape)
         arr.append(df_temp)
@@ -148,19 +147,27 @@ def spectrogram_image(y, sr, out, hop_length, n_mels):
     skimage.io.imsave(out, img)
 
 
+def contains_any_index(root, a_list):
+    for i, c in enumerate(a_list):
+        if c.startswith(root):
+            return i + 1
+    return 0
+
+
 def get_paths(dir_path):
     file_paths = []
-    audio_path = ""
+    audio_paths = []
     for root, directories, files in os.walk(dir_path):
         for filename in files:
-            # join the two strings in order to form the full filepath.
             if filename.endswith(".mp3"):
-                audio_path = os.path.join(root, filename)
-            else:
-                if audio_path != "":
-                    filepath = os.path.join(root, filename)
-                    file_paths.append((filepath, audio_path))
-
+                audio_paths.append(os.path.join(root, filename))
+    for root, directories, files in os.walk(dir_path):
+        for filename in files:
+            if not filename.endswith(".mp3"):
+                filepath = os.path.join(root, filename)
+                audio_path_index = contains_any_index(root, audio_paths)
+                if not audio_path_index == 0:
+                    file_paths.append((filepath, audio_paths[audio_path_index-1]))
     # returning all file paths
     return file_paths
 
@@ -181,7 +188,7 @@ if __name__ == "__main__":
     the image in the image folder will be automatically generated if function called
     """
     base_path = "C:/Users/hugob/dev/python/OsuMapCreator/MapCreator/datasets"
-    paths = get_paths(base_path + "/maps")
+    paths = get_paths(os.path.join(base_path, "maps"))
     print(paths)
     df, diff = load_beatmaps(paths)
     create_images(paths, base_path)
