@@ -16,17 +16,17 @@ from keras.layers import concatenate
 def create_mlp(dim, regress=False):
     # define our MLP network
     model = Sequential()
-    model.add(Dense(8, input_dim=dim, activation="relu"))
-    model.add(Dense(4, activation="relu"))
+    model.add(Dense(32, input_dim=dim, activation="relu"))
+    model.add(Dense(32, activation="relu"))
     # check to see if the regression node should be added
     if regress:
-        model.add(Dense(1, activation="linear"))
+        model.add(Dense(32, activation="linear"))
     # return our model
     return model
 
 
-def create_difficulty():
-    input2 = InputLayer(input_shape=(1,))
+def create_difficulty(shape):
+    input2 = InputLayer(input_shape=shape)
     model = Model(input2)
     return model
 
@@ -52,17 +52,17 @@ def create_cnn(width, height, depth, filters=(16, 32, 64, 128, 256), regress=Fal
 
         # flatten the volume, then FC => RELU => BN => DROPOUT
         x = Flatten()(x)
-        x = Dense(16)(x)
+        x = Dense(64)(x)
         x = Activation("relu")(x)
         x = BatchNormalization(axis=chanDim)(x)
         x = Dropout(0.5)(x)
         # apply another FC layer, this one to match the number of nodes
         # coming out of the MLP
-        x = Dense(4)(x)
+        x = Dense(32)(x)
         x = Activation("relu")(x)
         # check to see if the regression node should be added
         if regress:
-            x = Dense(1, activation="linear")(x)
+            x = Dense(16, activation="linear")(x)
         # construct the CNN
         model = Model(inputs, x)
         # return the CNN
@@ -77,15 +77,10 @@ def get_model(trainAttrX_shape, trainDiffX_shape):
     # create the input to our final set of layers as the *output* of both
     # the MLP and CNN
     combinedInput = concatenate([mlp.output, cnn.output, diff.output])
-    ####################################################################
-    # combinedInput = concatenate([mlp.output, cnn.output,difficulty]) #
-    ####################################################################
-    # our final FC layer head will have two dense layers, the final one
-    # being our regression head
-    x = Dense(4, activation="relu")(combinedInput)
-    x = Dense(1, activation="linear")(x)
-    # our final model will accept categorical/numerical data on the MLP
-    # input and images on the CNN input, outputting a single value (the
-    # predicted price of the house)
+
+    x = Dense(64, activation="relu")(combinedInput)
+    x = Dense(32, activation="linear")(x)
+    # our final model will accept music spectrogram image/difficulty data on the MLP
+    # input and images on the CNN input, outputting an array of the same dim as the input of the MLP
     model = Model(inputs=[cnn.input, diff.input], outputs=mlp.input)
     return model
