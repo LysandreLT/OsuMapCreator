@@ -1,28 +1,25 @@
+import librosa.feature
+import matplotlib.pyplot as plt
 import numpy as np
-import pydub
 
 
-def read(f, normalized=False):
-    """MP3 to numpy array"""
-    a = pydub.AudioSegment.from_mp3(f)
-    y = np.array(a.get_array_of_samples())
-    if a.channels == 2:
-        y = y.reshape((-1, 2))
-    if normalized:
-        return a.frame_rate, np.float32(y) / 2**15
-    else:
-        return a.frame_rate, y
+def load_melspectrogram(audio_path, plot=False):
+    y, sr = librosa.load(audio_path, sr=22050)
+    melspectrogram = librosa.feature.melspectrogram(y=y, sr=sr)
+    if plot:
+        fig, ax = plt.subplots()
+        S_dB = librosa.power_to_db(melspectrogram, ref=np.max)
+        img = librosa.display.specshow(S_dB, x_axis='time',
+                                       y_axis='mel', sr=sr, ax=ax)
+        fig.colorbar(img, ax=ax, format='%+2.0f dB')
+        ax.set(title='Mel-frequency spectrogram')
+        plt.show()
+    return melspectrogram
 
 
-def write(f, sr, x, normalized=False):
-    """numpy array to MP3"""
-    channels = 2 if (x.ndim == 2 and x.shape[1] == 2) else 1
-    if normalized:  # normalized array - each item should be a float in [-1, 1)
-        y = np.int16(x * 2 ** 15)
-    else:
-        y = np.int16(x)
-    song = pydub.AudioSegment(y.tobytes(), frame_rate=sr, sample_width=2, channels=channels)
-    song.export(f, format="mp3", bitrate="320k")
-
-sr, music = read("C:/Users/Lysandre/Documents/GitHub/OsuMapCreator/MapCreator/datasets/Musics/Smile-mileS (feat. なすお☆).mp3")
+if __name__ == "__main__":
+    path = "C:/Users/Lysandre/Documents/GitHub/OsuMapCreator/MapCreator/datasets/maps/33688 DJ Okawari - Flower " \
+           "Dance/Flower Dance.mp3"
+    mel_spectro = load_melspectrogram(path)
+    print(mel_spectro.shape)
 
