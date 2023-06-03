@@ -1,9 +1,12 @@
 import os.path
-import numpy as np
-import pandas as pd
+from typing import List
 
-from MapCreator.Utils.models import Spinner, Cercle, Slider
+import numpy as np
+from numpy import shape
+
+from MapCreator.Utils.models.models import Spinner, Cercle, Slider
 from MapCreator.Utils.parser import Parser
+from MapCreator.Utils.audio import load_melspectrogram
 
 
 def load_beatmap_attributes(path):
@@ -42,57 +45,65 @@ def load_beatmap_attributes(path):
                 data[11][i] = o.slides
                 data[12][i] = o.length
 
-    df_t = pd.DataFrame(data).T
-    df = pd.DataFrame(df_t.values.tolist(), columns=cols)
-    df = pd.DataFrame(df.values.tolist()).T
-    # df.drop(df.tail(1).index,
-    #         inplace=True)
-    # print(df.loc[len(parser.hit_objects), :])
-    return df.to_numpy(dtype=object), parser.difficulty.OverallDifficulty
+    return data, parser.difficulty.OverallDifficulty
 
 
-def load_beatmaps(paths):
+def load_beatmaps_and_spectrograms(paths: List):
     arr = []
     diff = []
+    spectrograms = []
     for path in paths:
         df_temp, difficulty = load_beatmap_attributes(path[0])
-        print(df_temp.shape)
+        df_temp = df_temp.transpose()
+        spectrogram = load_melspectrogram(path[1])
+        spectrogram = normalize(spectrogram)
         arr.append(df_temp)
         diff.append(difficulty)
-    print(np.array(arr, dtype=object).shape)
+        spectrograms.append(spectrogram)
     diff = np.array(diff, dtype=float)
-    df = np.asarray(arr, dtype=object)
-    return df, diff
+    return arr, spectrograms, diff
 
 
-def scale_minmax(X, min=0.0, max=1.0):
-    X_std = (X - X.min()) / (X.max() - X.min())
-    X_scaled = X_std * (max - min) + min
-    return X_scaled
+def normalize(img):
+    '''
+    Normalizes an array
+    (subtract mean and divide by standard deviation)
+    '''
+    eps = 0.001
+    if np.std(img) != 0:
+        img = (img - np.mean(img)) / np.std(img)
+    else:
+        img = (img - np.mean(img)) / eps
+    return img
+
+
+def contains_any_index(root, a_list):
+    for i, c in enumerate(a_list):
+        if c.startswith(root):
+            return i + 1
+    return 0
 
 
 def get_paths(dir_path):
     file_paths = []
-    audio_path = ""
+    audio_paths = []
     for root, directories, files in os.walk(dir_path):
         for filename in files:
-            # join the two strings in order to form the full filepath.
             if filename.endswith(".mp3"):
-                audio_path = os.path.join(root, filename)
-            else:
-                if audio_path != "":
-                    filepath = os.path.join(root, filename)
-                    file_paths.append((filepath, audio_path))
-
+                audio_paths.append(os.path.join(root, filename))
+    for root, directories, files in os.walk(dir_path):
+        for filename in files:
+            if not filename.endswith(".mp3"):
+                filepath = os.path.join(root, filename)
+                audio_path_index = contains_any_index(root, audio_paths)
+                if not audio_path_index == 0:
+                    file_paths.append((filepath, audio_paths[audio_path_index - 1]))
     # returning all file paths
     return file_paths
 
 
-
 if __name__ == "__main__":
-    base_path = "C:/Users/Lysandre/Documents/GitHub/OsuMapCreator/MapCreator/datasets/maps"
-    paths = get_paths(base_path + "/maps")
-    print(paths)
-    df, diff = load_beatmaps(paths)
-    print(df)
-    print(diff)
+    base_path = "C:/Users/Lysandre/Documents/GitHub/OsuMapCreator/MapCreator/datasets"
+    paths = get_paths(os.path.join(base_path, "maps"))
+    df, spectrograms, diff = load_beatmaps_and_spectrograms(paths)
+    print(len(df[4]))

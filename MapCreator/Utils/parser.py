@@ -3,9 +3,8 @@ import os
 import re
 from typing import List
 
-from MapCreator.Utils.models import General, Editor, Metadata, Difficulty, Event, TimingPoint, ColourObject, HitObject,\
-    SectionName, Slider, Spinner, Cercle
-
+from MapCreator.Utils.models.models import General, Editor, Metadata, Difficulty, Event, TimingPoint, ColourSection, HitObject, SectionName, \
+    Slider, Spinner, Cercle
 
 class Parser:
     def __init__(self):
@@ -16,7 +15,7 @@ class Parser:
         self.difficulty = Difficulty()
         self.events: List[Event] = []
         self.timing_points: List[TimingPoint] = []
-        self.colours: List[ColourObject] = []
+        self.colours: List[ColourSection] = []
         self.hit_objects: List[HitObject] = []
 
         self.osu_section = ""
@@ -98,9 +97,13 @@ PATH = "C:/Users/Lysandre/Documents/GitHub/OsuMapCreator/MapCreator/datasets/map
 if __name__ == "__main__":
     parser = Parser()
     parser.parse_file(PATH)
-    print(parser.general.AudioFilename)
-    # print([obj.__dict__ for obj in parser.hit_objects])
-    for obj in parser.hit_objects:
-        print(type(obj), obj.__dict__)
-        print(obj.__dict__)
-        print(obj.get("time"))
+    # print(parser.timing_points[0].time)
+    print(parser.hit_objects)
+    for o in parser.hit_objects:
+        if isinstance(o, Cercle):
+            print("true")
+        else:
+            print("false")
+    # for obj in parser.hit_objects:
+    #     # print(type(obj),obj.__dict__)
+    #     print(obj.__dict__)
