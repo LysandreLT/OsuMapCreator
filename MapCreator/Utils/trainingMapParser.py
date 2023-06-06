@@ -2,11 +2,21 @@ import os.path
 from typing import List
 
 import numpy as np
-from numpy import shape
 
-from MapCreator.Utils.models.models import Spinner, Cercle, Slider
+from MapCreator.Utils.models.models import Spinner, Cercle, Slider, HitObject
 from MapCreator.Utils.parser import Parser
 from MapCreator.Utils.audio import load_melspectrogram
+
+
+def scale_beatmap(hitpoints: List[HitObject]):
+    # we take 7min30s for each beatmap
+    duration = 7.739984882842026 * 60
+    new_hitpoints = []
+    for h in hitpoints:
+        if h.time <= duration * 1000:
+            new_hitpoints.append(h)
+    # hitpoints = [x for x in hitpoints if x[2] <= duration * 1000]
+    return new_hitpoints
 
 
 def load_beatmap_attributes(path):
@@ -17,7 +27,9 @@ def load_beatmap_attributes(path):
     max_hit_object = 4000
     data = np.zeros((13, max_hit_object), dtype=object)
 
-    for (i, o) in enumerate(parser.hit_objects):
+    hitpoints = scale_beatmap(parser.hit_objects)
+
+    for (i, o) in enumerate(hitpoints):
 
         if i < max_hit_object:
 
