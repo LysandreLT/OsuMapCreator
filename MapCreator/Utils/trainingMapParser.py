@@ -65,13 +65,14 @@ def load_beatmaps_and_spectrograms(paths: List):
     diff = []
     spectrograms = []
     for path in paths:
-        df_temp, difficulty = load_beatmap_attributes(path[0])
-        df_temp = df_temp.transpose()
         spectrogram = load_melspectrogram(path[1])
         spectrogram = normalize(spectrogram)
-        arr.append(df_temp)
-        diff.append(difficulty)
-        spectrograms.append(spectrogram)
+        for beatmap in path[0]:
+            df_temp, difficulty = load_beatmap_attributes(beatmap)
+            df_temp = df_temp.transpose()
+            arr.append(df_temp)
+            diff.append(difficulty)
+            spectrograms.append(spectrogram)
     diff = np.array(diff, dtype=float)
     return arr, spectrograms, diff
 
@@ -98,24 +99,23 @@ def contains_any_index(root, a_list):
 
 def get_paths(dir_path):
     file_paths = []
-    audio_paths = []
-    for root, directories, files in os.walk(dir_path):
-        for filename in files:
-            if filename.endswith(".mp3"):
-                audio_paths.append(os.path.join(root, filename))
-    for root, directories, files in os.walk(dir_path):
-        for filename in files:
-            if not filename.endswith(".mp3"):
-                filepath = os.path.join(root, filename)
-                audio_path_index = contains_any_index(root, audio_paths)
-                if not audio_path_index == 0:
-                    file_paths.append((filepath, audio_paths[audio_path_index - 1]))
-    # returning all file paths
+
+    for dir in os.listdir(dir_path):
+        audio = ""
+        beatmaps = []
+        for file in os.listdir(os.path.join(dir_path, dir)):
+            if file.endswith(".mp3"):
+                audio = os.path.join(dir_path, dir, file)
+            else:
+                beatmaps.append(os.path.join(dir_path, dir, file))
+        file_paths.append((beatmaps, audio))
+
     return file_paths
 
 
 if __name__ == "__main__":
     base_path = "C:/Users/Lysandre/Documents/GitHub/OsuMapCreator/MapCreator/datasets"
     paths = get_paths(os.path.join(base_path, "maps"))
-    df, spectrograms, diff = load_beatmaps_and_spectrograms(paths)
-    print(len(df[4]))
+    arr, spectrograms, diff = load_beatmaps_and_spectrograms(paths)
+    print(len(spectrograms))
+    print(len(arr))
