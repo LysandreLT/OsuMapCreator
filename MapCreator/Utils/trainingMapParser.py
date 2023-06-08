@@ -60,11 +60,13 @@ def load_beatmap_attributes(path):
     return data, parser.difficulty.OverallDifficulty
 
 
-def load_beatmaps_and_spectrograms(paths: List):
+def load_beatmaps_and_spectrograms(paths: List, max:int):
     arr = []
     diff = []
     spectrograms = []
-    for path in paths:
+    for i, path in enumerate(paths):
+        if i >= max:
+            break
         spectrogram = load_melspectrogram(path[1])
         spectrogram = normalize(spectrogram)
         for beatmap in path[0]:
