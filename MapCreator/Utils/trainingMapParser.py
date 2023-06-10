@@ -6,6 +6,7 @@ import numpy as np
 from MapCreator.Utils.models.models import Spinner, Cercle, Slider, HitObject
 from MapCreator.Utils.parser import Parser
 from MapCreator.Utils.audio import load_melspectrogram
+from MapCreator.IA.Transformers.Training import path_to_audio
 
 
 def scale_beatmap(hitpoints: List[HitObject]):
@@ -19,12 +20,11 @@ def scale_beatmap(hitpoints: List[HitObject]):
     return new_hitpoints
 
 
-def load_beatmap_attributes(path):
+def load_beatmap_attributes(path, max_hit_object=4000):
     cols = ["x", "y", "time", "type", "endtime", "x2", "2", "x3", "y3", "x4", "y4", "slide", "length"]
 
     parser = Parser()
     parser.parse_file(path)
-    max_hit_object = 4000
     data = np.zeros((13, max_hit_object), dtype=object)
 
     hitpoints = scale_beatmap(parser.hit_objects)
@@ -60,15 +60,14 @@ def load_beatmap_attributes(path):
     return data, parser.difficulty.OverallDifficulty
 
 
-def load_beatmaps_and_spectrograms(paths: List, max:int):
+def load_beatmaps_and_spectrograms(paths: List, max=1000):
     arr = []
     diff = []
     spectrograms = []
     for i, path in enumerate(paths):
-        if i >= max:
+        if max and i >= max:
             break
-        spectrogram = load_melspectrogram(path[1])
-        spectrogram = normalize(spectrogram)
+        spectrogram = path_to_audio(path[1])
         for beatmap in path[0]:
             df_temp, difficulty = load_beatmap_attributes(beatmap)
             df_temp = df_temp.transpose()
@@ -99,10 +98,12 @@ def contains_any_index(root, a_list):
     return 0
 
 
-def get_paths(dir_path):
+def get_paths(dir_path, max=1000):
     file_paths = []
 
-    for dir in os.listdir(dir_path):
+    for i, dir in enumerate(os.listdir(dir_path)):
+        if max and i >= max:
+            break
         audio = ""
         beatmaps = []
         for file in os.listdir(os.path.join(dir_path, dir)):

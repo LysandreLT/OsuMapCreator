@@ -4,7 +4,7 @@ import numpy as np
 
 
 def load_melspectrogram(audio_path, plot=False):
-    y, sr = librosa.load(audio_path, sr=22050)
+    y, sr = librosa.load(audio_path, sr=22050, mono=True)
     melspectrogram = np.zeros((128, 20000), dtype=float)
     melspectrogram_full = librosa.feature.melspectrogram(y=y, sr=sr)
     melspectrogram[:, :melspectrogram_full.shape[1]] = melspectrogram_full[:, :20000]

@@ -2,7 +2,7 @@ from keras import layers
 from tensorflow import keras
 from MapCreator.Utils.trainingMapParser import *
 
-base_path = "C:/Users/Lysandre/Documents/GitHub/OsuMapCreator/MapCreator/datasets"
+base_path = "/MapCreator/datasets"
 paths = get_paths(os.path.join(base_path, "maps"))
 df, spectrograms, diff = load_beatmaps_and_spectrograms(paths)
 x_train = spectrograms
@@ -32,23 +32,21 @@ decoder_input_shape = 13
 latent_dim = 256
 
 # Model's input
-input_spectrogram = keras.Input((None, input_dim), name="input_spectrogram")
-# Expand the dimension to use 2D CNN.
-x = layers.Reshape((-1, input_dim, 1), name="expand_dim")(input_spectrogram)
+input_spectrogram = keras.Input((20000, 128, 1), name="input_spectrogram")
 # Convolution layer 1
 x = layers.Conv2D(
-    filters=32,
+    filters=64,
     kernel_size=[11, 41],
     strides=[2, 2],
     padding="same",
     use_bias=False,
     name="conv_1",
-)(x)
+)(input_spectrogram)
 x = layers.BatchNormalization(name="conv_1_bn")(x)
 x = layers.ReLU(name="conv_1_relu")(x)
 # Convolution layer 2
 x = layers.Conv2D(
-    filters=32,
+    filters=64,
     kernel_size=[11, 21],
     strides=[1, 2],
     padding="same",
@@ -57,8 +55,6 @@ x = layers.Conv2D(
 )(x)
 x = layers.BatchNormalization(name="conv_2_bn")(x)
 x = layers.ReLU(name="conv_2_relu")(x)
-# Reshape the resulted volume to feed the RNNs layers
-x = layers.Reshape((-1, x.shape[-2] * x.shape[-1]))(x)
 
 encoder = keras.layers.LSTM(latent_dim, return_state=True)
 encoder_outputs, state_h, state_c = encoder(x)

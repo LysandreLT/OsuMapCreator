@@ -3,8 +3,9 @@ import os
 import re
 from typing import List
 
-from MapCreator.Utils.models.models import General, Editor, Metadata, Difficulty, Event, TimingPoint, ColourSection, HitObject, SectionName, \
-    Slider, Spinner, Cercle
+from MapCreator.Utils.models.models import General, Editor, Metadata, Difficulty, Event, TimingPoint, ColourSection, \
+    HitObject, SectionName, Slider, Spinner, Cercle
+
 
 class Parser:
     def __init__(self):
@@ -91,10 +92,10 @@ class Parser:
                     line = file.readline()
 
 
-PATH = "C:/Users/Lysandre/Documents/GitHub/OsuMapCreator/MapCreator/datasets/maps/67565 DragonForce - Valley of the " \
-       "Damned/DragonForce - Valley of the Damned (Kayne) [Apocalypse].osu"
-
 if __name__ == "__main__":
+
+    PATH = "C:/Users/Lysandre/Documents/GitHub/OsuMapCreator/MapCreator/datasets/maps/67565 DragonForce - Valley of the " \
+           "Damned/DragonForce - Valley of the Damned (Kayne) [Apocalypse].osu"
     parser = Parser()
     parser.parse_file(PATH)
     # print(parser.timing_points[0].time)

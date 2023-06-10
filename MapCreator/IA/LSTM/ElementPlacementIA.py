@@ -1,5 +1,3 @@
-import numpy as np
-import tensorflow as tf
 from tensorflow import keras
 
 """
@@ -10,7 +8,7 @@ Sortie : .txt
 latent_dim = 256
 input_dim = 128
 
-model = keras.models.load_model("MapCreator")
+model = keras.models.load_model("../MapCreator")
 
 # Encoder
 encoder_inputs = model.input[0]  # input_1
@@ -39,10 +37,9 @@ decoder_model = keras.Model(
 def sampling(input_seq):
     # Encode the input as state vectors.
     states_value = encoder_model.predict(input_seq)
-    print(len(states_value[0]))
     target_seq = np.array([-1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0]).reshape(
         (1, 1, -1))
-
+    print(states_value[0].shape)
     # Sampling loop for a batch of sequences
     # (to simplify, here we assume a batch of size 1).
     stop_condition = False
@@ -68,7 +65,10 @@ def sampling(input_seq):
 
 if __name__ == "__main__":
     from MapCreator.Utils.trainingMapParser import *
-    base_path = "C:/Users/Lysandre/Documents/GitHub/OsuMapCreator/MapCreator/datasets"
+    base_path = "/MapCreator/datasets"
     paths = get_paths(os.path.join(base_path, "maps"))
     df, spectrograms, diff = load_beatmaps_and_spectrograms(paths)
-    sampling(spectrograms[0])
+    x_train = spectrograms
+    x_train = np.array(x_train, dtype=float)
+    print(x_train[0].shape)
+    sampling(x_train[0])
