@@ -9,14 +9,17 @@ import os.path
 
 
 class VectorizeChar:
-    def __init__(self, max_len=4000):
+    def __init__(self, max_len=10000):
         self.max_len = max_len
 
     def __call__(self, text):
-        return []
+        text = text.lower()
+        text = text[: self.max_len - 2]
+        text = "<" + text + ">"
+        pad_len = self.max_len - len(text)
+        return [self.char_to_idx.get(ch, 1) for ch in text] + [0] * pad_len
 
-
-def load_beatmaps_and_musics(paths, max=1000):
+def load_beatmaps_and_musics(paths, max_nb_musics=1000):
     data = []
     diff = []
     for i, path in enumerate(paths):
@@ -29,14 +32,11 @@ def load_beatmaps_and_musics(paths, max=1000):
             data.append({"audio": path[1], "text": df_temp})
     return data
 
-
-def create_text_ds(data):
-    text_ds = [_["text"] for _ in data]
-    text_ds = tf.data.Dataset.from_tensor_slices(text_ds)
-    return text_ds
+def split_beatmaps_and_musics(data, max_lenght=10000):
 
 
-def path_to_audio(path):
+
+def path_to_audios(path):
     # spectrogram using stft
     audio = tf.io.read_file(path)
     audio, _ = tfio.audio.decode_mp3(audio, 1)
@@ -59,10 +59,14 @@ def create_audio_ds(data):
     flist = [_["audio"] for _ in data]
     audio_ds = tf.data.Dataset.from_tensor_slices(flist)
     audio_ds = audio_ds.map(
-        path_to_audio, num_parallel_calls=tf.data.AUTOTUNE
+        path_to_audios, num_parallel_calls=tf.data.AUTOTUNE
     )
     return audio_ds
 
+def create_text_ds(data):
+    text_ds = [_["text"] for _ in data]
+    text_ds = tf.data.Dataset.from_tensor_slices(text_ds)
+    return text_ds
 
 def create_tf_dataset(data, bs=4):
     audio_ds = create_audio_ds(data)

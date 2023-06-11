@@ -1,9 +1,20 @@
-import os
-import random
-from glob import glob
 import tensorflow as tf
 from tensorflow import keras
 from keras import layers
+
+
+class TokenEmbedding(layers.Layer):
+    def __init__(self, num_vocab=1000, maxlen=100, num_hid=64):
+        super().__init__()
+        self.emb = tf.keras.layers.Embedding(num_vocab, num_hid)
+        self.pos_emb = layers.Embedding(input_dim=maxlen, output_dim=num_hid)
+
+    def call(self, x):
+        maxlen = tf.shape(x)[-1]
+        x = self.emb(x)
+        positions = tf.range(start=0, limit=maxlen, delta=1)
+        positions = self.pos_emb(positions)
+        return x + positions
 
 
 class SpeechFeatureEmbedding(layers.Layer):
@@ -102,15 +113,15 @@ class TransformerDecoder(layers.Layer):
 
 class Transformer(keras.Model):
     def __init__(
-        self,
-        num_hid=64,
-        num_head=2,
-        num_feed_forward=128,
-        source_maxlen=100,
-        target_maxlen=100,
-        num_layers_enc=4,
-        num_layers_dec=1,
-        num_classes=10,
+            self,
+            num_hid=64,
+            num_head=2,
+            num_feed_forward=128,
+            source_maxlen=100,
+            target_maxlen=100,
+            num_layers_enc=4,
+            num_layers_dec=1,
+            num_classes=10,
     ):
         super().__init__()
         self.loss_metric = keras.metrics.Mean(name="loss")

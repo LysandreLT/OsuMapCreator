@@ -6,7 +6,6 @@ import numpy as np
 from MapCreator.Utils.models.models import Spinner, Cercle, Slider, HitObject
 from MapCreator.Utils.parser import Parser
 from MapCreator.Utils.audio import load_melspectrogram
-from MapCreator.IA.Transformers.Training import path_to_audio
 
 
 def scale_beatmap(hitpoints: List[HitObject]):
@@ -21,7 +20,7 @@ def scale_beatmap(hitpoints: List[HitObject]):
 
 
 def load_beatmap_attributes(path, max_hit_object=4000):
-    cols = ["x", "y", "time", "type", "endtime", "x2", "2", "x3", "y3", "x4", "y4", "slide", "length"]
+    cols = ["x", "y", "time", "type", "endtime", "x2", "y2", "x3", "y3", "x4", "y4", "slide", "length"]
 
     parser = Parser()
     parser.parse_file(path)

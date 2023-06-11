@@ -81,7 +81,7 @@ class CustomSchedule(keras.optimizers.schedules.LearningRateSchedule):
 max_target_len = 4000
 base_path = "C:/Users/Lysandre/Documents/GitHub/OsuMapCreator/MapCreator/datasets"
 paths = get_paths(os.path.join(base_path, "maps"))
-data = load_beatmaps_and_musics(paths, max_target_len)
+data = load_beatmaps_and_musics(paths, max_nb_musics=500)
 split = int(len(data) * 0.99)
 train_data = data[:split]
 test_data = data[split:]
