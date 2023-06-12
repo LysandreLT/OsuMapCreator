@@ -21,7 +21,7 @@ class BeatmapSet:
         self.metadata: Metadata = None
         self.difficulty: Difficulty = None
         self.events: Event = None
-        self.timing_points = None
+        self.timing_points: List[TimingPoint] = []
         self.colours = None
         self.hit_objects: List[HitObject] = None
 
@@ -126,18 +126,30 @@ class BeatmapSet:
         self.write_append(self.file_name, "\n" + SectionName.Difficulty.value + "\n", 'a')
         self.write_append(self.file_name, resultList, 'a')
 
+    def build_events(self):
+        events = ["[Events]",
+                    "//Background and Video events",
+                    "//Storyboard Layer 0 (Background)",
+                    "//Storyboard Layer 1 (Fail)",
+                    "//Storyboard Layer 2 (Pass)",
+                    "//Storyboard Layer 3 (Foreground)",
+                    "//Storyboard Layer 4 (Overlay)",
+                    "//Storyboard Sound Samples"]
+        resultList = [x + "\n" for x in events]
+        self.write_append(self.file_name, resultList, 'a')
+
     # [TimingPoints]
     # time , beatlength, meter, sampleset (nornal = 1), sampleIndex (default = 0), volume (= 100%), uninherited,effects
     # 8692.70490823524, 428.571428571429, 4, 1, 0, 100, 1, 0 --> 60 * 1000 / 428.571 = 140 BPM --> 60 000 / BPM = beatLength
     def build_timing_point(self, y, sr, **kwargs):
-        # one day maybe
-        # resultList = ["8687.67429394725,422.535211267606,4,1,0,100,1,0"]
         resultList = []
         tempo = audio_.bpm(y, sr)
         beatlength = 60000 / tempo
-        t = TimingPoint(time=0, beatLength=beatlength, meter=4, sampleSet=1, sampleIndex=0, volume=100, uninherited=1,
+        t = TimingPoint(time=0, beatLength=int(beatlength), meter=4, sampleSet=1, sampleIndex=0, volume=100,
+                        uninherited=1,
                         effects=0)
-        resultList.append(t.__str__() + "\n")
+        self.timing_points.append(t)
+        resultList = [x.__str__() + "\n" for x in self.timing_points]
         self.write_append(self.file_name, "\n" + SectionName.TimingPoints.value + "\n", 'a')
         self.write_append(self.file_name, resultList, 'a')
 
@@ -148,7 +160,7 @@ class BeatmapSet:
 
     # 512 * 384
     def build_hit_points(self, y, sr, difficulty):
-        def random_position(x1, y1, distance, recursion=0) -> CurvePoint:
+        def random_position(x1, y1, distance) -> CurvePoint:
             padding = 50
             angle = random.randrange(0, 360, 5)
             angle_rad = math.radians(angle)
@@ -168,6 +180,7 @@ class BeatmapSet:
                 y -= padding
             while x > 512 - padding:
                 x -= padding
+
             return CurvePoint(x=int(x), y=int(y))
 
         def is_time_between_2_points_enough(time1, time2, _difficulty):
@@ -179,7 +192,7 @@ class BeatmapSet:
 
         resultList: List[HitObject] = []
         n = 0
-        index = 0
+
         while n < len(onsets):
             index = len(resultList)
 
@@ -189,32 +202,42 @@ class BeatmapSet:
                 hit_point = Spinner(x=256, y=192, time=round(onsets[n]), type=12, hitSound=0,
                                     endTime=round(onsets[n]) + 3000)
                 resultList.append(hit_point)
+
                 n += 1
             elif n == 0:
 
                 hit_point = Circle(x=256, y=192, time=round(onsets[n]), type=5, hitSound=0)
                 resultList.append(hit_point)
+
                 n += 1
-            elif n != 0 and is_time_between_2_points_enough(onsets[n], onsets[n - 1], difficulty):
+            elif n != 0 and is_time_between_2_points_enough(onsets[n], round(onsets[n - 1]), difficulty):
 
                 if rvalue == 1:
                     curve_type = random.choice(["B", "C", "L", "P"])
-                    p = random_position(resultList[index - 1].x, resultList[index - 1].y, random.randrange(40, 80, 1))
+                    p = random_position(resultList[index - 1].x, resultList[index - 1].y, random.randrange(40, 60, 1))
 
                     curve_points: List[CurvePoint] = []
-                    curve_point_nb = random.randrange(1, 3, 1)
+                    curve_point_nb: int = 0
                     edge_sets = "0:0|0:0"
                     edge_sounds = "2|2"
                     # TODO
                     # length = self.timing_point(onsets[n])
-                    length = 0
+                    length = self.timing_points[0].beatLength
+
+                    if curve_type == "P":
+                        curve_point_nb = 2
+                    elif curve_type == "L":
+                        curve_point_nb = 1
+                    else:
+                        curve_point_nb = random.randrange(2, 4, 1)
+
                     for i in range(0, curve_point_nb):
                         if i == 0:
-                            cp = random_position(p.x, p.y, random.randrange(30, 60, 1))
+                            cp = random_position(p.x, p.y, random.randrange(40, 60, 1))
                             curve_points.append(cp)
                         else:
                             cp = random_position(curve_points[i - 1].x, curve_points[i - 1].y,
-                                                 random.randrange(30, 60, 1))
+                                                 random.randrange(40, 60, 1))
                             curve_points.append(cp)
 
                     hit_point = Slider(x=p.x, y=p.y, time=round(onsets[n]),
@@ -228,8 +251,9 @@ class BeatmapSet:
                     p = random_position(resultList[index - 1].x, resultList[index - 1].y, random.randrange(40, 80, 1))
                     hit_point = Circle(x=p.x, y=p.y, time=round(onsets[n]), type=5, hitSound=0)
                     resultList.append(hit_point)
+
                     n += 1
-            elif not is_time_between_2_points_enough(onsets[n], onsets[n - 1], difficulty):
+            elif not is_time_between_2_points_enough(onsets[n], round(onsets[n - 1]), difficulty):
                 n += 1
 
         self.write_append(self.file_name, "\n" + SectionName.HitObjects.value + "\n", 'a')

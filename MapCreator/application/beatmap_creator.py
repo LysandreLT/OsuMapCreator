@@ -166,14 +166,14 @@ class Project(tk.Frame):
             beatmap.write_append(beatmap.file_name, beatmap.file_format, 'w')
 
             beatmap.build_general(AudioFilename="audio.mp3")
-
+            beatmap.build_editor()
             beatmap.build_metadata(Title=title, TitleUnicode=title_unicode, Artist=artist, ArtistUnicode=artist,
                                    Creator=creator, Version=version, Source=source, Tags=tags)
             beatmap.build_difficulty(HPDrainRate=self.config.tab_difficulty.hp_drain_rate.get(),
                                      CircleSize=self.config.tab_difficulty.circle_size.get(),
                                      OverallDifficulty=self.config.tab_difficulty.overall_difficulty.get(),
                                      ApproachRate=self.config.tab_difficulty.approach_rate.get())
-            beatmap.build_editor()
+            beatmap.build_events()
             beatmap.build_hitobjects_and_timingpoints(os.path.join(dir_path,"audio.mp3"), 1 / beatmap.difficulty.OverallDifficulty)
 
             utils.write_osz_archive(dir_path, dir_path)
