@@ -1,11 +1,9 @@
 import os.path
 from typing import List
-
 import numpy as np
 
 from MapCreator.Utils.models.models import Spinner, Cercle, Slider, HitObject
 from MapCreator.Utils.parser import Parser
-from MapCreator.Utils.audio import load_melspectrogram
 
 
 def scale_beatmap(hitpoints: List[HitObject]):

@@ -67,6 +67,7 @@ def prepare_dataset(data, segment_length=5529, max_hitObject=120):
             if 10000 * segment_id > hitpoint[2]:
                 hitpoint[2] -= 10000 * (segment_id - 1)
                 segment.append(hitpoint.tolist())
+
             else:
                 for i in range(int(hitpoint[2] / 10000)-(segment_id-1)):
                     segment.append(end_of_sequence)
@@ -76,6 +77,8 @@ def prepare_dataset(data, segment_length=5529, max_hitObject=120):
                     segment += [0] * (max_hitObject*13 - len(segment))
                     if len(segment) > max_hitObject*13:
                         print("Warning : the length of the sequence exceeds the fixed limit")
+                        segment = segment[:max_hitObject*13]
+                        print("Sequence cut to " + str(len(segment)) + " elements")
                     diff_segments.append(segment)
                     segment = [start_of_sequence]
                     segment_id += 1
@@ -97,6 +100,14 @@ def create_text_and_audio_ds(data, bs=4):
     music_segments, diff_segments = prepare_dataset(data)
     print("Number of diff segments : " + str(len(diff_segments)))
     print("Number of music segments : " + str(len(music_segments)))
+
+    #Verification of all the values
+    print("Verification of the values")
+    for i in range(len(diff_segments)):
+        for j in range(len(diff_segments[i])):
+            if diff_segments[i][j] < 0 or 10002 < diff_segments[i][j]:
+                diff_segments[i][j] = 0
+    print("Verification done")
     audio_ds = tf.data.Dataset.from_tensor_slices(music_segments)
     map_ds = tf.data.Dataset.from_tensor_slices(diff_segments)
     ds = tf.data.Dataset.zip((audio_ds, map_ds))
