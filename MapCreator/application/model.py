@@ -5,56 +5,6 @@ from tkinter import ttk, filedialog, scrolledtext
 from MapCreator.music.model_onset_detect import build_model_default, build_model_superflux, build_model_beat, \
     build_model_plp, build_model_plp_log
 
-LARGEFONT = ("Verdana", 15)
-
-
-class ProjectPresentation(tk.Frame):
-
-    def __init__(self, parent):
-        tk.Frame.__init__(self, parent)
-
-        label = ttk.Label(self, text="presentation", font=LARGEFONT)
-        label.grid(row=0, column=0, padx=10, pady=10, sticky="w")
-
-        label = ttk.Label(self, text="Project consist of...", font=LARGEFONT)
-        label.grid(row=1, column=0, padx=10, pady=10, sticky="w")
-
-        label = ttk.Label(self, text="README", font=LARGEFONT)
-        label.grid(row=2, column=0, padx=10, pady=10, sticky="w")
-
-        label = ttk.Label(self, text="DISCLAIMER (made by students)", font=LARGEFONT)
-        label.grid(row=3, column=0, padx=10, pady=10, sticky="w")
-
-        label = ttk.Label(self, text="Version (osu file format v14)", font=LARGEFONT)
-        label.grid(row=4, column=0, padx=10, pady=10, sticky="w")
-
-        label = ttk.Label(self, text="LICENSE go see GNU or MIT for license", font=LARGEFONT)
-        label.grid(row=5, column=0, padx=10, pady=10, sticky="w")
-
-
-insert_text = """Models de test :
-beatmaps réalisées à partir de l'analyse des onsets et de la structure rhythmique d'une piste audio.
-les position x et y sont aléatoire.
-modèle peut précis ne prenant pas en compte la difficultés.
-
- - traditional onset methods : able to detect quite a bit of the structure for simple sound. for music with a more complex structure, 
- with many instruments + voice + soft sound, it has a hard time to detect the onet , work base on peak selection strategy
- see doc for more onformation : https://...
- 
- - superflux onset methods
- see documentation for more details : http...
- 
- - beat : to repetitve, difficulty depend too much on its speed
- 
- - Predominant Local Pulse (PLP) some sort of bpm depending on the time frame in the music,
- 
- - PLP log-normal, another way to visualize PLP
- 
- -  novelty curve?
- 
-#proof of concept
-"""
-
 
 class ModelTest(tk.Frame):
 
@@ -96,13 +46,6 @@ class ModelTest(tk.Frame):
         # description
         label_description = tk.Label(self, text="Description")
         label_description.grid(row=3, column=0)
-
-        text_area = scrolledtext.ScrolledText(self, wrap=tk.WORD,
-                                              width=80, height=15)
-
-        text_area.grid(column=0, row=4, columnspan=5, sticky=tk.W + tk.E)
-        text_area.insert(tk.END, insert_text)
-        text_area.config(state=tk.DISABLED)
 
         # project repo path entry?
         # create project folder?

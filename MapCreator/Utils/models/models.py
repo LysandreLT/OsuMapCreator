@@ -38,13 +38,6 @@ class HitSample:
     volume: int = 0
     filename: Optional[str] = None
 
-    def set(self, normalSet: int, additionSet: int, index: int, volume: int, filename: Optional[str] = ""):
-        self.normalSet = normalSet
-        self.additionSet = additionSet
-        self.index = index
-        self.volume = volume
-        self.filename = filename
-
     def __str__(self):
         if self.filename is not None:
             return str(f"{self.normalSet}:{self.additionSet}:{self.index}:{self.volume}:{self.filename}:")
@@ -82,10 +75,10 @@ class General(Section):
 @dataclass
 class Editor(Section):
     Bookmarks: Optional[List[int]] = None
-    DistanceSpacing: float = 1.22  # between 0.1 and 2.0
+    DistanceSpacing: float = 1.22
     BeatDivisor: int = 4
     GridSize: int = 4
-    TimelineZoom: float = 1.0  # between 0.1 and 8.0
+    TimelineZoom: float = 1.0
 
     def parse_line(self, line: str):
         members = line.split(':')
@@ -176,7 +169,6 @@ class TimingPoint(Section):
     volume: int = 1
     uninherited: int = 0
     effects: int = 0  # Effect = None
-    bpm: Optional[int] = None
 
     def parse_line(self, line: str):
         members = line.split(",")
@@ -188,13 +180,9 @@ class TimingPoint(Section):
         self.volume = self.value(members[5])
         self.uninherited = self.value(members[6])
         self.effects = self.value(members[7])
-        self.calculate_bpm()
 
-    def calculate_bpm(self):
-        self.bpm = round(60000 / self.beatLength)
-
-    def calculate_beat_length(self, bpm: int):
-        self.beatLength = 60000 / bpm
+    def __str__(self):
+        return f"{self.time},{self.beatLength},{self.meter},{self.sampleSet},{self.sampleIndex},{self.volume},{self.uninherited},{self.effects}"
 
 
 class Colour:
@@ -257,7 +245,7 @@ class HitObject(Section):
 
 
 @dataclass
-class Cercle(HitObject):
+class Circle(HitObject):
 
     def parse_line(self, line):
         members = line.split(",")
@@ -283,6 +271,9 @@ class Spinner(HitObject):
         self.endTime = self.value(members[5])
 
         self.hitSample = self.get_hit_sample(self.value(members[-1]))
+
+    def __str__(self):
+        return f"{self.x},{self.y},{self.time},{self.type},{self.hitSound},{self.endTime},{self.hitSample}"
 
 
 @dataclass
@@ -322,7 +313,7 @@ class Slider(HitObject):
                 curve_point.x = self.value(coordinates[0])
                 curve_point.y = self.value(coordinates[1])
                 # self.curvePoints.append(curve_point)
-                self.curvePoints.append(curve_point.__str__())
+                self.curvePoints.append(curve_point)
 
         # Parse repeat slides bumber & length
         self.slides = int(members[6])
@@ -338,3 +329,8 @@ class Slider(HitObject):
                 self.edgeSets = members[9]
 
         self.hitSample = self.get_hit_sample(self.value(members[-1]))
+
+    def __str__(self):
+        curve_points = "|".join([cp.__str__() for cp in self.curvePoints])
+
+        return f"{self.x},{self.y},{self.time},{self.type},{self.hitSound},{self.curveType}|{curve_points},{self.slides},{self.length},{self.edgeSounds},{self.edgeSets},{self.hitSample}"

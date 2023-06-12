@@ -3,8 +3,10 @@ import os
 import re
 from typing import List
 
+import numpy as np
+
 from MapCreator.Utils.models.models import General, Editor, Metadata, Difficulty, Event, TimingPoint, ColourSection, HitObject, SectionName, \
-    Slider, Spinner, Cercle
+    Slider, Spinner, Circle
 
 
 class Parse:
@@ -30,7 +32,7 @@ class Parse:
         # 3:Spinner
         # 7 osu mania
         if _type & 1:
-            cercle = Cercle()
+            cercle = Circle()
             cercle.parse_line(line)
             return cercle
         elif _type & 2:
@@ -44,7 +46,7 @@ class Parse:
         # elif _type & 128:
         #     print("mania")
         else:
-            cercle = Cercle()
+            cercle = Circle()
             cercle.parse_line(line)
             print("unknown type:", _type)
             return cercle
@@ -92,15 +94,15 @@ class Parse:
                     line = file.readline()
 
 
-
-
 if __name__ == "__main__":
     PATH = "C:/Users/hugob/dev/python/OsuMapCreator/MapCreator/datasets/maps/552854 REOL - YoiYoi Kokon/REOL - YoiYoi Kokon (Ongaku) [Easy].osu"
     parser = Parse()
     parser.parse_file(PATH)
-    print(parser.timing_points[0].time)
+
     # print([obj.__dict__ for obj in parser.hit_objects])
-    # for obj in parser.hit_objects:
+    for obj in parser.hit_objects:
+        if isinstance(obj, Slider):
+            print(obj.curvePoints," || ",obj.edgeSounds," || ",obj.edgeSets)
     #     # print(type(obj),obj.__dict__)
     #     # print(obj.__dict__)
     #     print(obj.get("time"))

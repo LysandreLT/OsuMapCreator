@@ -2,14 +2,16 @@
 import os.path
 import shutil
 import tkinter as tk
-from tkinter import filedialog, messagebox, simpledialog
+from tkinter import filedialog, messagebox
 
-import mutagen
 from tkinterdnd2 import DND_FILES, TkinterDnD
 
-from MapCreator.Utils.parser import Parse
+from MapCreator.Utils import utils
+from MapCreator.Utils.beatmapset import BeatmapSet
+
 from MapCreator.application.configuration import BeatmapConfig
-from MapCreator.application.model import ModelTest, ProjectPresentation
+
+
 
 
 class tkinterApp(TkinterDnD.Tk):
@@ -18,15 +20,13 @@ class tkinterApp(TkinterDnD.Tk):
 
         self.resizable(False, False)
         self.title('App')
-        self.geometry('1080x720')
-
-        self.current_project_dir = ""
+        self.geometry('900x512')
 
         # init menu
         self.create_menu_bar()
 
         self._frame = None
-        self.switch_frame(ProjectPresentation)
+        self.switch_frame(Project)
 
         # frame.grid(row=0, column=0, sticky="nsew")
 
@@ -43,72 +43,31 @@ class tkinterApp(TkinterDnD.Tk):
 
         # file
         menu_file = tk.Menu(menu_bar, tearoff=0)
-        menu_file.add_command(label="New project", command=lambda: self.switch_frame(NewProject))
-        menu_file.add_command(label="Open project", command=self.browse_folder)
+
         # menu_file.add_separator()
-        # menu_file.add_command(label="Beatmap configuration", command=lambda: self.switch_frame(BeatmapConfigtk))
-        menu_file.add_separator()
-        menu_file.add_command(label="Presentation", command=lambda: self.switch_frame(ProjectPresentation))
-        menu_file.add_command(label="Test", command=lambda: self.switch_frame(ModelTest))
-        menu_file.add_separator()
+        #
+        # menu_file.add_command(label="Test", command=lambda: self.switch_frame(ModelTest))
+        # menu_file.add_separator()
         menu_file.add_command(label="Exit", command=self.quit)
         menu_bar.add_cascade(label="File", menu=menu_file)
-        # edit
-        # menu_edit = tk.Menu(menu_bar, tearoff=0)
-        # menu_edit.add_command(label="Beatmap configuration", command=lambda: self.switch_frame(BeatmapConfig))
-        # menu_edit.add_separator()
-        # menu_edit.add_command(label="Volume")
-        # menu_edit.add_command(label="slider speed")
-        # menu_bar.add_cascade(label="Edit", menu=menu_edit)
 
         self.config(menu=menu_bar)
 
-    def import_map(self):
-        # TODO possibility to import an existing osu map / extract and parse
-        pass
 
-    def browse_folder(self):
-        filename = filedialog.askdirectory(initialdir="",
-                                           title="Select a Folder")
-        self.current_project_dir = filename
-        if filename != "":
-            self.switch_frame(Project)
-
-
-class NewProject(tk.Frame):
-
+class Project(tk.Frame):
     def __init__(self, master):
         tk.Frame.__init__(self, master)
 
-        self.artist = ""
-        self.title = ""
+        # frame
+        _frame = tk.Frame(self, width=master.winfo_width(), height=master.winfo_height())
+        _frame.pack()
 
-        # location
-        location_frame = tk.Frame(self)
-        location_frame.pack(fill=tk.X)
+        frame_music = tk.Frame(_frame)
+        frame_music.grid(row=0, column=0)
 
-        lbl1_location = tk.Label(location_frame, text=" Location :", width=6)
-        lbl1_location.pack(side=tk.LEFT, padx=5, pady=5)
-
-        btn_browse_location = tk.Button(location_frame, text="Select File",
-                                        command=self.browse_folder)
-        btn_browse_location.pack(side=tk.RIGHT, padx=5, pady=5)
-
-        self.location = tk.StringVar()
-        entry_location = tk.Entry(location_frame, textvariable=self.location)
-        entry_location.pack(fill=tk.X, padx=5, expand=True)
-
-        # create new
-        create_new_local_dir_frame = tk.Frame(self)
-        create_new_local_dir_frame.pack(fill=tk.X)
-
-        self.isChecked = tk.BooleanVar()
-        checkbox = tk.Checkbutton(create_new_local_dir_frame, text="Create a local directory for projects ?",
-                                  variable=self.isChecked)
-        checkbox.pack(side=tk.LEFT, pady=5)
         # DND
-        dnd_frame = tk.Frame(self)
-        dnd_frame.pack(fill=tk.X)
+        dnd_frame = tk.Frame(frame_music)
+        dnd_frame.pack()
 
         dnd_image_tk = tk.PhotoImage(file="./ressources/dnd.gif")
         label_dnd = tk.Label(dnd_frame, text="Drag and drop mp3 file here", image=dnd_image_tk)
@@ -117,24 +76,16 @@ class NewProject(tk.Frame):
         label_dnd.drop_target_register(DND_FILES)
         label_dnd.dnd_bind("<<Drop>>", self.drop_inside_image)
 
-        btn_browse = tk.Button(self, text="Browse file", command=self.browse_file)
+        btn_browse = tk.Button(frame_music, text="Browse file", command=self.browse_file)
         btn_browse.pack()
+        tk.Button(frame_music, text="Generate", command=self.generate_beatmap).pack()
 
         self.audio_path = tk.StringVar()
         label = tk.Label(self, textvariable=self.audio_path, fg="#FF0000", font="Verdana 10 underline")
         label.pack()
 
-        # btn
-        # frame = tk.Frame(self, relief=tk.RAISED, borderwidth=1)
-        # frame.pack(fill=tk.BOTH, expand=True)
-        frame = tk.Frame(self)
-        frame.pack(fill=tk.X)
-
-        btn_create_project = tk.Button(frame, text="Create", command=lambda: self.create(master))
-        btn_create_project.pack(side=tk.RIGHT, padx=10, pady=5, ipadx=5, ipady=5)
-
-        btn_cancel = tk.Button(frame, text="Cancel", command=lambda: self.cancel(master))
-        btn_cancel.pack(side=tk.RIGHT, padx=10, pady=5, ipadx=5, ipady=5)
+        self.config = BeatmapConfig(_frame)
+        self.config.grid(row=0, rowspan=3, column=1, sticky="EW")
 
     def drop_inside_image(self, event):
         file_path = self.parse_drop_files(event.data)
@@ -171,198 +122,78 @@ class NewProject(tk.Frame):
         else:
             return res[0]
 
-    def browse_folder(self):
-        filename = filedialog.askdirectory(initialdir="",
-                                           title="Select a Folder")
-        self.location.set(filename.strip())
+    def generate_beatmap(self):
+        directory = self.browse_folder()
+        if directory != "":
+            print("generating beatmap!")
+
+            beatmap = BeatmapSet()
+
+            title = self.config.tab_general.title.get()
+            if title == "":
+                return -1
+            title_unicode = self.config.tab_general.romanised_title.get()
+            if title_unicode == "":
+                return -1
+            artist = self.config.tab_general.artist.get()
+            if artist == "":
+                return -1
+            artist_unicode = self.config.tab_general.romanised_artist.get()
+            if artist_unicode == "":
+                return -1
+            creator = self.config.tab_general.beatmap_creator.get()
+            if creator == "":
+                return -1
+            version = self.config.tab_general.difficulty.get()
+            if version == "":
+                return -1
+            source = self.config.tab_general.source.get()
+            if source == "":
+                source = " "
+            tags = self.config.tab_general.tags.get()
+            if tags == "":
+                return -1
+
+            dir_path = os.path.join(directory, f"{artist} - {title}")
+
+            if not os.path.exists(dir_path):
+                os.makedirs(dir_path)
+            shutil.copyfile(self.audio_path.get(), os.path.join(dir_path, "audio.mp3"))
+
+            beatmap.file_name = os.path.join(dir_path, f"{artist} - {title} ({creator}) [{version}].osu")
+
+            beatmap.file_format = "osu file format v14\n\n"
+            beatmap.write_append(beatmap.file_name, beatmap.file_format, 'w')
+
+            beatmap.build_general(AudioFilename="audio.mp3")
+
+            beatmap.build_metadata(Title=title, TitleUnicode=title_unicode, Artist=artist, ArtistUnicode=artist,
+                                   Creator=creator, Version=version, Source=source, Tags=tags)
+            beatmap.build_difficulty(HPDrainRate=self.config.tab_difficulty.hp_drain_rate.get(),
+                                     CircleSize=self.config.tab_difficulty.circle_size.get(),
+                                     OverallDifficulty=self.config.tab_difficulty.overall_difficulty.get(),
+                                     ApproachRate=self.config.tab_difficulty.approach_rate.get())
+            beatmap.build_editor()
+            beatmap.build_hitobjects_and_timingpoints(os.path.join(dir_path,"audio.mp3"), 1 / beatmap.difficulty.OverallDifficulty)
+
+            utils.write_osz_archive(dir_path, dir_path)
+            # utils.delete_tree(dir_path)
+
+
+
+
+
 
     def browse_file(self):
         filename = filedialog.askopenfilename(initialdir="",
                                               title="Select a File")
         self.audio_path.set(filename.strip())
 
-    def cancel(self, master):
-        self.location.set("")
-        master.switch_frame(ProjectPresentation)
-
-    def create(self, master):
-        if self.location.get() and os.path.exists(self.location.get()):
-            if self.audio_path.get() and os.path.exists(self.audio_path.get()):
-                if self.isChecked.get():
-                    if not os.path.exists(os.path.join(self.location.get(), "songs")) and os.path.basename(
-                            self.location.get()) != "songs":
-                        os.mkdir(os.path.join(self.location.get(), "songs"))
-                    if os.path.basename(self.location.get()) != "songs":
-                        self.create_project(os.path.join(self.location.get(), "songs"), master)
-                    else:
-                        self.create_project(self.location.get(), master)
-                else:
-                    self.create_project(self.location.get(), master)
-            else:
-                messagebox.showerror('Missing indormations', 'Error: Please select an audio file')
-        else:
-            messagebox.showerror('Missing indormations', 'Error: Please enter a valid location path for your project')
-
-    def create_project(self, project_path, master):
-        # TODO don't like to set the artist like this here. may be if no meta detected, go to project and wait for user
-        #  to input artist and title and save to create the project repo
-        # TODO find a way to keep the audio path and move it late to the project repo
-        # reset artist and title
-        artist = ""
-        title = ""
-        # Search audio metadata
-        try:
-            file = mutagen.File(self.audio_path.get())
-            try:
-                artist = file["artist"]
-                title = file["title"]
-            except:
-                title = file["TIT2"]
-                artist = file["TPE1"]
-        except:
-            answer = MyDialog(self)
-            if answer.result[0] is not None:
-                artist = answer.result[0]
-            if answer.result[1] is not None:
-                title = answer.result[1]
-
-        # create project dir
-        project_dir = os.path.join(project_path, f"{artist} - {title}")
-        if not os.path.exists(project_dir):
-            os.mkdir(project_dir)
-        # opening the project interface
-        master.current_project_dir = project_dir
-        shutil.move(src=self.audio_path.get(), dst=project_dir)
-        master.switch_frame(Project)
-
-
-class MyDialog(tk.simpledialog.Dialog):
-
-    def body(self, master):
-        tk.Label(master, text="Please enter the name of the artist:").grid(row=0)
-        tk.Label(master, text="Please enter the name of the song:").grid(row=1)
-
-        self.e1 = tk.Entry(master)
-        self.e2 = tk.Entry(master)
-
-        self.e1.grid(row=0, column=1)
-        self.e2.grid(row=1, column=1)
-        self.e1.insert(0, "")
-        self.e2.insert(0, "")
-        return self.e1  # initial focus
-
-    def buttonbox(self):
-        box = tk.Frame(self)
-        tk.Button(box, text="Validate", width=10, command=self.ok, default=tk.ACTIVE) \
-            .pack(side=tk.LEFT, padx=5, pady=5)
-        tk.Button(box, text="Cancel", width=10, command=self.cancel) \
-            .pack(side=tk.LEFT, padx=5, pady=5)
-        box.pack()
-
-    def apply(self):
-        artist = self.e1.get()
-        title = self.e2.get()
-        self.result = artist, title
-
-    def validate(self):
-        if self.e1.get() != "" and self.e2.get() != "":
-            self.apply()
-            return True
-        messagebox.showinfo("infos", "please fill every fields!")
-        return False
-
-
-class Project(tk.Frame):
-    def __init__(self, master):
-        tk.Frame.__init__(self, master)
-
-        # frame
-        _frame = tk.Frame(self, width=master.winfo_width(), height=master.winfo_height())
-        _frame.pack()
-
-        self.listbox = tk.Listbox(_frame, selectmode=tk.SINGLE, background="#ffe0d6")
-        self.listbox.place(relheight=1, relwidth=0.25)
-        self.listbox.drop_target_register(DND_FILES)
-        self.listbox.dnd_bind("<<Drop>>", self.drop_inside_list_box)
-        self.listbox.bind("<<ListboxSelect>>", lambda event: self.refresh_list_box(event, master))
-        self.refresh_list_box(None, master)
-
-        frame_config = tk.Frame(_frame)
-        frame_config.place(relx=0.25)
-
-        self.config = BeatmapConfig(frame_config)
-        self.config.pack(side=tk.LEFT)
-
-        # TODO here we take the first beatmap in the project folder --> to change
-        for file in set(self.listbox.get(0, "end")):
-            self.initialize_config(master, file)
-            break
-
-        tk.Button(frame_config, text="Save", command=self.save).pack()
-        tk.Button(frame_config, text="Generate").pack()
-        tk.Button(frame_config, text="Export").pack()
-
-        # frame = tk.Frame(master,background="#ff0000")
-        # frame.place(relx=0.25,y=350, relwidth=0.75, relheight=1.00)
-        # TODO add logs and configs file to remember if already have a work dir and a proj dir
-        # TODO detect if .osu (and music) in current project --> if have, parse --> else propose if they want to create a new project/or wait for them to save and create a repo
-        # TODO set / initialize config panels with the parsed values
-        # TODO add and finish all configs panels
-        # TODO add save btn to save modif --> rewrite all file?(utils/beatmapset)
-        # TODO add beatmap creation btn
-
-    def initialize_config(self, master, file: str):
-        if file.endswith(".osu"):
-            # create a new parser each time we parse a map? should be a singleton or something similar
-            parser = Parse()
-            parser.parse_file(os.path.join(master.current_project_dir, file))
-            print(parser.hit_objects[0].x)
-
-    def drop_inside_list_box(self, event):
-        self.listbox.insert("end", event.data)
-
-    def refresh_list_box(self, event, master):
-        indices = self.listbox.curselection()
-        if indices:
-            file = self.listbox.get(indices[0])
-            self.initialize_config(master, file)
-        # TODO check if any change before refreshing
-        self.listbox.delete(0, "end")
-        if os.path.exists(master.current_project_dir):
-            for file in os.listdir(master.current_project_dir):
-                if file not in set(self.listbox.get(0, "end")):
-                    self.listbox.insert("end", file)
-
-    def save(self):
-        pass
-
-    def create(self):
-        # TODO saving before creating (.osu)
-        self.save()
-        # TODO create --> method that process the audio in order to create the hit objects
-        # TODO check if there is audio + .osu and .osu configured correctly
-        #  --> zip everything
-        pass
-
-    def create_new_difficulty(self):
-        # TODO create a custom difficulty for the map
-        #  add it to the config so that the app remember
-        pass
-
-    def open_difficulty(self):
-        # TODO a song can have many beatmaps of differents difficulty
-        pass
-
-    def export_map(self):
-        # TODO export a choosen project
-        pass
-
-    def clear_all_notes(self):
-        # TODO reset all hitpoints / hitobjects
-        pass
+    def browse_folder(self):
+        return filedialog.askdirectory(initialdir="",
+                                       title="Select a Folder")
 
 
 if __name__ == "__main__":
     app = tkinterApp()
-    # app.eval('tk::PlaceWindow . center')
     app.mainloop()
