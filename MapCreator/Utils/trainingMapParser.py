@@ -21,12 +21,14 @@ def scale_beatmap(hitpoints: List[HitObject]):
 
 def load_beatmap_attributes(path, max_hit_object=4000):
     cols = ["x", "y", "time", "type", "endtime", "x2", "y2", "x3", "y3", "x4", "y4", "slide", "length"]
-
     parser = Parser()
     parser.parse_file(path)
-    data = np.zeros((13, max_hit_object), dtype=object)
 
     hitpoints = scale_beatmap(parser.hit_objects)
+
+    if max_hit_object is None:
+        max_hit_object = len(hitpoints)
+    data = np.zeros((13, max_hit_object), dtype=int)
 
     for (i, o) in enumerate(hitpoints):
 
@@ -106,9 +108,9 @@ def get_paths(dir_path, max=1000):
         audio = ""
         beatmaps = []
         for file in os.listdir(os.path.join(dir_path, dir)):
-            if file.endswith(".mp3"):
+            if file.endswith(".mp3") or file.endswith(".wav"):
                 audio = os.path.join(dir_path, dir, file)
-            else:
+            elif file.endswith(".osu"):
                 beatmaps.append(os.path.join(dir_path, dir, file))
         file_paths.append((beatmaps, audio))
 
@@ -118,6 +120,5 @@ def get_paths(dir_path, max=1000):
 if __name__ == "__main__":
     base_path = "C:/Users/Lysandre/Documents/GitHub/OsuMapCreator/MapCreator/datasets"
     paths = get_paths(os.path.join(base_path, "maps"))
-    arr, spectrograms, diff = load_beatmaps_and_spectrograms(paths)
-    print(len(spectrograms))
-    print(len(arr))
+    data = load_beatmap_attributes(paths[0][0][0])
+    print(data)

@@ -99,7 +99,6 @@ if __name__ == "__main__":
     parser = Parser()
     parser.parse_file(PATH)
     # print(parser.timing_points[0].time)
-    print(parser.hit_objects)
     for o in parser.hit_objects:
         if isinstance(o, Cercle):
             print("true")
