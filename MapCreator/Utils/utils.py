@@ -1,4 +1,5 @@
 import os
+import subprocess
 import shutil
 import zipfile
 from enum import Enum
@@ -11,7 +12,7 @@ class Type(Enum):
     OSU = "osu"
     JSON = "json"
     ZIP = "zip"
-    CSV="csv"
+    CSV = "csv"
 
 
 def readZip(file: str):
@@ -74,8 +75,7 @@ def write_archive(file_paths, name: str):
     with zipfile.ZipFile(f'{name}.osz', 'w') as zip:
         # writing each file one by one
         for file in file_paths:
-
-            zip.write(file,arcname=os.path.basename(file))
+            zip.write(file, arcname=os.path.basename(file))
     print('All files zipped successfully!')
 
 
@@ -88,6 +88,18 @@ def write_osz_archive(directory: str, name: str):
     file_paths = get_all_file_paths(directory)
     write_archive(file_paths, name)
 
+
+FILEBROWSER_PATH = os.path.join(os.getenv('WINDIR'), 'explorer.exe')
+
+
+def explore(path):
+    # explorer would choke on forward slashes
+    path = os.path.normpath(path)
+
+    if os.path.isdir(path):
+        subprocess.run([FILEBROWSER_PATH, path])
+    elif os.path.isfile(path):
+        subprocess.run([FILEBROWSER_PATH, '/select,', path])
 
 
 def selectList(list):
@@ -158,4 +170,3 @@ def clean_archive(path: str, dest: str):
         temp_path = dest + "/temp/"
         extractAll(path, temp_path)
         clean_archive_folder(temp_path, dest)
-

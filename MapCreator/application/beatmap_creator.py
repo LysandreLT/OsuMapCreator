@@ -177,7 +177,10 @@ class Project(tk.Frame):
             beatmap.build_hitobjects_and_timingpoints(os.path.join(dir_path,"audio.mp3"), 1 / beatmap.difficulty.OverallDifficulty)
 
             utils.write_osz_archive(dir_path, dir_path)
-            # utils.delete_tree(dir_path)
+            utils.delete_tree(dir_path)
+            messagebox.showinfo("Beatmap created!", f"beatmap created in {os.path.dirname(dir_path)}")
+            import subprocess
+            utils.explore(os.path.dirname(dir_path))
 
 
 
@@ -194,6 +197,11 @@ class Project(tk.Frame):
                                        title="Select a Folder")
 
 
+
 if __name__ == "__main__":
     app = tkinterApp()
     app.mainloop()
+
+
+
+
