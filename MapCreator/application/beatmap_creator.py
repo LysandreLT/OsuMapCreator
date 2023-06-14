@@ -12,8 +12,6 @@ from MapCreator.Utils.beatmapset import BeatmapSet
 from MapCreator.application.configuration import BeatmapConfig
 
 
-
-
 class tkinterApp(TkinterDnD.Tk):
     def __init__(self, *args, **kwargs):
         super().__init__()
@@ -174,18 +172,14 @@ class Project(tk.Frame):
                                      OverallDifficulty=self.config.tab_difficulty.overall_difficulty.get(),
                                      ApproachRate=self.config.tab_difficulty.approach_rate.get())
             beatmap.build_events()
-            beatmap.build_hitobjects_and_timingpoints(os.path.join(dir_path,"audio.mp3"), 1 / beatmap.difficulty.OverallDifficulty)
+            beatmap.build_hitobjects_and_timingpoints(os.path.join(dir_path, "audio.mp3"),
+                                                      1 / beatmap.difficulty.OverallDifficulty)
 
             utils.write_osz_archive(dir_path, dir_path)
             utils.delete_tree(dir_path)
             messagebox.showinfo("Beatmap created!", f"beatmap created in {os.path.dirname(dir_path)}")
-            import subprocess
+
             utils.explore(os.path.dirname(dir_path))
-
-
-
-
-
 
     def browse_file(self):
         filename = filedialog.askopenfilename(initialdir="",
@@ -197,11 +191,6 @@ class Project(tk.Frame):
                                        title="Select a Folder")
 
 
-
 if __name__ == "__main__":
     app = tkinterApp()
     app.mainloop()
-
-
-
-
